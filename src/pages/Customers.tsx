@@ -2,7 +2,6 @@ import { useState, useEffect, useMemo } from 'react'
 import {
   Box,
   Button,
-  Container,
   Dialog,
   DialogActions,
   DialogContent,
@@ -25,8 +24,6 @@ import {
   Chip,
   Tabs,
   Tab,
-  Stack,
-  Divider,
   CircularProgress,
   InputAdornment,
   Skeleton,
@@ -42,26 +39,13 @@ import {
   Phone as PhoneIcon,
   Email as EmailIcon,
   LocationOn as LocationIcon,
-  Circle as CircleIcon,
   Search as SearchIcon,
 } from '@mui/icons-material'
-import { useNavigate, useSearchParams } from 'react-router-dom'
-import { collection, query, where, getDocs, getDoc, doc, addDoc, updateDoc, deleteDoc, orderBy } from 'firebase/firestore'
+import { collection, query, getDocs, doc, addDoc, updateDoc, deleteDoc, orderBy, serverTimestamp, Timestamp } from 'firebase/firestore'
 import { db } from '../config/firebase'
 import { IMaskInput } from 'react-imask'
-import { forwardRef } from 'react'
 import { formatCPF, formatCNPJ, isValidCPF, isValidCNPJ } from '@brazilian-utils/brazilian-utils'
 import axios from 'axios'
-
-interface Address {
-  cep: string
-  logradouro: string
-  bairro: string
-  cidade: string
-  uf: string
-  complemento: string
-  numero: string
-}
 
 interface Customer {
   id: string
@@ -71,43 +55,27 @@ interface Customer {
   document: string
   phone: string
   email: string
-  address: Address
   status: 'active' | 'inactive'
   category: 'regular' | 'vip' | 'new'
   notes?: string
+  address: {
+    cep: string
+    logradouro: string
+    bairro: string
+    cidade: string
+    uf: string
+    complemento?: string
+    numero: string
+  }
   createdAt: Date
   updatedAt: Date
 }
 
-interface CustomMaskProps {
-  onChange: (event: { target: { name: string; value: string } }) => void;
-  name: string;
-  mask: string;
-}
-
-const TextMaskCustom = forwardRef<HTMLElement, CustomMaskProps>(
-  function TextMaskCustom(props, ref) {
-    const { onChange, mask, ...other } = props;
-    return (
-      <IMaskInput
-        {...other}
-        mask={mask}
-        definitions={{
-          '#': /[0-9]/
-        }}
-        inputRef={ref}
-        onAccept={(value: any) => 
-          onChange({ target: { name: props.name, value } })
-        }
-        overwrite
-      />
-    );
-  }
-);
+const TextMaskCustom = IMaskInput
 
 export default function Customers() {
   const [customers, setCustomers] = useState<Customer[]>([])
-  const [loading, setLoading] = useState(false)
+  const [loading, setLoading] = useState(true)
   const [openDialog, setOpenDialog] = useState(false)
   const [currentTab, setCurrentTab] = useState(0)
   const [searchTerm, setSearchTerm] = useState('')
@@ -130,54 +98,54 @@ export default function Customers() {
   const [documentError, setDocumentError] = useState('')
   const [loadingCep, setLoadingCep] = useState(false)
   const [cepError, setCepError] = useState('')
-  const [searchParams] = useSearchParams()
-  const navigate = useNavigate()
   const [saving, setSaving] = useState(false)
   const [feedback, setFeedback] = useState<{
-    open: boolean;
-    message: string;
-    type: 'success' | 'error';
+    open: boolean
+    message: string
+    type: 'success' | 'error'
   }>({
     open: false,
     message: '',
     type: 'success'
   })
 
+  // Carregar clientes ao montar o componente
   useEffect(() => {
     loadCustomers()
-  }, [currentTab])
+  }, [])
 
+  // Função para carregar clientes
   const loadCustomers = async () => {
     try {
       setLoading(true)
       const customersRef = collection(db, 'customers')
-      
-      let q = query(customersRef, orderBy('createdAt', 'desc'))
-      
-      if (currentTab === 1) {
-        q = query(customersRef, where('type', '==', 'person'), orderBy('createdAt', 'desc'))
-      } else if (currentTab === 2) {
-        q = query(customersRef, where('type', '==', 'company'), orderBy('createdAt', 'desc'))
-      } else if (currentTab === 3) {
-        q = query(customersRef, where('category', '==', 'vip'), orderBy('createdAt', 'desc'))
-      }
-      
+      const q = query(customersRef, orderBy('createdAt', 'desc'))
       const querySnapshot = await getDocs(q)
-      const customersList = querySnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data(),
-        createdAt: doc.data().createdAt?.toDate(),
-        updatedAt: doc.data().updatedAt?.toDate(),
-      })) as Customer[]
+      
+      const customersList = querySnapshot.docs.map(doc => {
+        const data = doc.data()
+        return {
+          id: doc.id,
+          ...data,
+          createdAt: data.createdAt?.toDate(),
+          updatedAt: data.updatedAt?.toDate(),
+        }
+      }) as Customer[]
 
       setCustomers(customersList)
     } catch (error) {
       console.error('Erro ao carregar clientes:', error)
+      setFeedback({
+        open: true,
+        message: 'Erro ao carregar clientes. Tente novamente.',
+        type: 'error'
+      })
     } finally {
       setLoading(false)
     }
   }
 
+  // Função para salvar cliente
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
@@ -207,17 +175,13 @@ export default function Customers() {
           complemento: formData.address?.complemento || '',
           numero: formData.address?.numero || '',
         },
-        createdAt: formData.id ? formData.createdAt : new Date(),
-        updatedAt: new Date(),
+        updatedAt: serverTimestamp(),
       }
 
       if (formData.id) {
         // Atualizar cliente existente
         const docRef = doc(db, 'customers', formData.id)
-        await updateDoc(docRef, {
-          ...customerData,
-          updatedAt: new Date(),
-        })
+        await updateDoc(docRef, customerData)
         setFeedback({
           open: true,
           message: 'Cliente atualizado com sucesso!',
@@ -226,10 +190,12 @@ export default function Customers() {
       } else {
         // Criar novo cliente
         const code = await generateCustomerCode()
-        await addDoc(customersRef, {
+        const newCustomerData = {
           ...customerData,
           code,
-        })
+          createdAt: serverTimestamp(),
+        }
+        await addDoc(customersRef, newCustomerData)
         setFeedback({
           open: true,
           message: 'Cliente cadastrado com sucesso!',
@@ -238,20 +204,7 @@ export default function Customers() {
       }
 
       await loadCustomers()
-      setFormData({
-        type: 'person',
-        status: 'active',
-        category: 'regular',
-        address: {
-          cep: '',
-          logradouro: '',
-          bairro: '',
-          cidade: '',
-          uf: '',
-          complemento: '',
-          numero: '',
-        }
-      })
+      resetForm()
       setOpenDialog(false)
     } catch (error) {
       console.error('Erro ao salvar cliente:', error)
@@ -265,22 +218,37 @@ export default function Customers() {
     }
   }
 
+  // Função para excluir cliente
   const handleDelete = async (id: string) => {
     if (window.confirm('Tem certeza que deseja excluir este cliente?')) {
       try {
         setLoading(true)
         await deleteDoc(doc(db, 'customers', id))
-        loadCustomers() // Recarrega a lista
+        setFeedback({
+          open: true,
+          message: 'Cliente excluído com sucesso!',
+          type: 'success'
+        })
+        await loadCustomers()
       } catch (error) {
         console.error('Erro ao excluir cliente:', error)
+        setFeedback({
+          open: true,
+          message: 'Erro ao excluir cliente. Tente novamente.',
+          type: 'error'
+        })
       } finally {
         setLoading(false)
       }
     }
   }
 
+  // Função para validar documento (CPF/CNPJ)
   const validateDocument = (document: string, type: 'person' | 'company'): boolean => {
-    if (!document) return false
+    if (!document) {
+      setDocumentError('Documento é obrigatório')
+      return false
+    }
     
     const cleanDocument = document.replace(/\D/g, '')
     if (type === 'person') {
@@ -298,17 +266,7 @@ export default function Customers() {
     return true
   }
 
-  const handleDocumentChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value
-    const cleanValue = value.replace(/\D/g, '')
-    const type = formData.type || 'person'
-    
-    setFormData(prev => ({
-      ...prev,
-      document: type === 'person' ? formatCPF(cleanValue) : formatCNPJ(cleanValue)
-    }))
-  }
-
+  // Função para buscar CEP
   const searchCep = async (cep: string) => {
     const cleanCep = cep.replace(/\D/g, '')
     if (cleanCep.length !== 8) {
@@ -346,19 +304,35 @@ export default function Customers() {
     }
   }
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | { name?: string; value: unknown }>) => {
-    const { name, value } = e.target
-    setFormData(prev => ({ ...prev, [name as string]: value }))
-  }
-
+  // Função para gerar código do cliente
   const generateCustomerCode = async () => {
     const customersRef = collection(db, 'customers')
     const querySnapshot = await getDocs(customersRef)
     const totalCustomers = querySnapshot.size
-    const newCode = `CLI${String(totalCustomers + 1).padStart(5, '0')}`
-    return newCode
+    return `CLI${String(totalCustomers + 1).padStart(5, '0')}`
   }
 
+  // Função para resetar formulário
+  const resetForm = () => {
+    setFormData({
+      type: 'person',
+      status: 'active',
+      category: 'regular',
+      address: {
+        cep: '',
+        logradouro: '',
+        bairro: '',
+        cidade: '',
+        uf: '',
+        complemento: '',
+        numero: '',
+      }
+    })
+    setDocumentError('')
+    setCepError('')
+  }
+
+  // Filtrar clientes
   const filteredCustomers = useMemo(() => {
     return customers.filter(customer => {
       const matchesSearch = searchTerm === '' || 
@@ -380,28 +354,16 @@ export default function Customers() {
 
   return (
     <Box>
+      {/* Cabeçalho */}
       <Box sx={{ mb: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <Typography variant="h4">
+        <Typography variant="h4" sx={{ fontSize: '1.75rem', fontWeight: 600 }}>
           Clientes
         </Typography>
         <Button
           variant="contained"
           startIcon={<AddIcon />}
           onClick={() => {
-            setFormData({
-              type: 'person',
-              status: 'active',
-              category: 'regular',
-              address: {
-                cep: '',
-                logradouro: '',
-                bairro: '',
-                cidade: '',
-                uf: '',
-                complemento: '',
-                numero: '',
-              }
-            })
+            resetForm()
             setOpenDialog(true)
           }}
         >
@@ -409,60 +371,21 @@ export default function Customers() {
         </Button>
       </Box>
 
+      {/* Tabs */}
       <Paper sx={{ mb: 3 }}>
-        <Tabs value={currentTab} onChange={(_, value) => setCurrentTab(value)}>
-          <Tab 
-            label={
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <span>Todos os Clientes</span>
-                {!loading && <Chip 
-                  size="small" 
-                  label={customers.length} 
-                  sx={{ height: 20 }} 
-                />}
-              </Box>
-            } 
-          />
-          <Tab 
-            label={
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <span>Pessoas Físicas</span>
-                {!loading && <Chip 
-                  size="small" 
-                  label={customers.filter(c => c.type === 'person').length} 
-                  sx={{ height: 20 }} 
-                />}
-              </Box>
-            } 
-          />
-          <Tab 
-            label={
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <span>Empresas</span>
-                {!loading && <Chip 
-                  size="small" 
-                  label={customers.filter(c => c.type === 'company').length} 
-                  sx={{ height: 20 }} 
-                />}
-              </Box>
-            } 
-          />
-          <Tab 
-            label={
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <span>VIP</span>
-                {!loading && <Chip 
-                  size="small" 
-                  color="primary"
-                  label={customers.filter(c => c.category === 'vip').length} 
-                  sx={{ height: 20 }} 
-                />}
-              </Box>
-            } 
-          />
+        <Tabs
+          value={currentTab}
+          onChange={(_, newValue) => setCurrentTab(newValue)}
+          sx={{ borderBottom: 1, borderColor: 'divider' }}
+        >
+          <Tab label="Todos" />
+          <Tab label="Pessoa Física" />
+          <Tab label="Pessoa Jurídica" />
+          <Tab label="VIP" />
         </Tabs>
       </Paper>
 
+      {/* Filtros */}
       <Paper sx={{ mb: 3, p: 2 }}>
         <Grid container spacing={2} alignItems="center">
           <Grid item xs={12} md={4}>
@@ -513,19 +436,10 @@ export default function Customers() {
               </Select>
             </FormControl>
           </Grid>
-          {loading && (
-            <Grid item xs={12} md={2}>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <CircularProgress size={20} />
-                <Typography variant="body2" color="text.secondary">
-                  Carregando...
-                </Typography>
-              </Box>
-            </Grid>
-          )}
         </Grid>
       </Paper>
 
+      {/* Tabela de Clientes */}
       <TableContainer component={Paper}>
         <Table>
           <TableHead>
@@ -572,31 +486,24 @@ export default function Customers() {
                   <TableCell>{customer.code}</TableCell>
                   <TableCell>{customer.name}</TableCell>
                   <TableCell>
-                    <Chip
-                      size="small"
-                      icon={customer.type === 'person' ? <PersonIcon /> : <BusinessIcon />}
-                      label={customer.type === 'person' ? 'Pessoa Física' : 'Pessoa Jurídica'}
-                    />
+                    {customer.type === 'person' ? 'Pessoa Física' : 'Pessoa Jurídica'}
                   </TableCell>
                   <TableCell>{customer.document}</TableCell>
                   <TableCell>{customer.phone}</TableCell>
                   <TableCell>{customer.email}</TableCell>
-                  <TableCell>{customer.address.cidade}/{customer.address.uf}</TableCell>
+                  <TableCell>{`${customer.address.cidade}/${customer.address.uf}`}</TableCell>
                   <TableCell>
-                    <Chip
-                      size="small"
-                      color={customer.status === 'active' ? 'success' : 'error'}
+                    <Chip 
                       label={customer.status === 'active' ? 'Ativo' : 'Inativo'}
+                      color={customer.status === 'active' ? 'success' : 'default'}
+                      size="small"
                     />
                   </TableCell>
                   <TableCell>
-                    <Chip
+                    <Chip 
+                      label={customer.category === 'vip' ? 'VIP' : customer.category === 'new' ? 'Novo' : 'Regular'}
+                      color={customer.category === 'vip' ? 'primary' : customer.category === 'new' ? 'info' : 'default'}
                       size="small"
-                      color={customer.category === 'vip' ? 'primary' : 'default'}
-                      label={
-                        customer.category === 'regular' ? 'Regular' :
-                        customer.category === 'vip' ? 'VIP' : 'Novo'
-                      }
                     />
                   </TableCell>
                   <TableCell align="right">
@@ -629,32 +536,20 @@ export default function Customers() {
         open={openDialog} 
         onClose={() => {
           if (!saving) {
+            resetForm()
             setOpenDialog(false)
-            setFormData({
-              type: 'person',
-              status: 'active',
-              category: 'regular',
-              address: {
-                cep: '',
-                logradouro: '',
-                bairro: '',
-                cidade: '',
-                uf: '',
-                complemento: '',
-                numero: '',
-              }
-            })
           }
         }}
-        maxWidth="md" 
+        maxWidth="md"
         fullWidth
       >
         <DialogTitle>
           {formData.id ? 'Editar Cliente' : 'Novo Cliente'}
         </DialogTitle>
         <DialogContent dividers>
-          <Box component="form" id="customerForm" onSubmit={handleSubmit} sx={{ mt: 2 }}>
+          <Box component="form" onSubmit={handleSubmit} sx={{ mt: 2 }}>
             <Grid container spacing={2}>
+              {/* Informações Básicas */}
               <Grid item xs={12}>
                 <Typography variant="subtitle2" sx={{ mb: 2, color: 'text.secondary' }}>
                   Informações Básicas
@@ -680,7 +575,7 @@ export default function Customers() {
                       setFormData(prev => ({
                         ...prev,
                         type: e.target.value as 'person' | 'company',
-                        document: '' // Limpa o documento ao trocar o tipo
+                        document: ''
                       }))
                       setDocumentError('')
                     }}
@@ -697,15 +592,21 @@ export default function Customers() {
                   fullWidth
                   label={formData.type === 'person' ? 'CPF' : 'CNPJ'}
                   value={formData.document || ''}
-                  onChange={handleDocumentChange}
-                  name="document"
+                  onChange={(e) => {
+                    const value = e.target.value
+                    const cleanValue = value.replace(/\D/g, '')
+                    setFormData(prev => ({
+                      ...prev,
+                      document: prev.type === 'person' ? formatCPF(cleanValue) : formatCNPJ(cleanValue)
+                    }))
+                  }}
                   error={!!documentError}
                   helperText={documentError}
                   required
                   InputProps={{
                     inputComponent: TextMaskCustom as any,
                     inputProps: {
-                      mask: formData.type === 'person' ? '000.000.000-00' : '00.000.000/0000-00',
+                      mask: formData.type === 'person' ? '000.000.000-00' : '00.000.000/0000-00'
                     }
                   }}
                 />
@@ -746,12 +647,11 @@ export default function Customers() {
                   label="Telefone"
                   value={formData.phone || ''}
                   onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
-                  name="phone"
                   required
                   InputProps={{
                     inputComponent: TextMaskCustom as any,
                     inputProps: {
-                      mask: '(00) 00000-0000',
+                      mask: '(00) 00000-0000'
                     }
                   }}
                 />
@@ -768,6 +668,7 @@ export default function Customers() {
                 />
               </Grid>
 
+              {/* Endereço */}
               <Grid item xs={12}>
                 <Typography variant="subtitle2" sx={{ mb: 2, mt: 2, color: 'text.secondary' }}>
                   Endereço
@@ -789,14 +690,13 @@ export default function Customers() {
                       searchCep(value)
                     }
                   }}
-                  name="cep"
                   error={!!cepError}
                   helperText={cepError}
                   required
                   InputProps={{
                     inputComponent: TextMaskCustom as any,
                     inputProps: {
-                      mask: '00000-000',
+                      mask: '00000-000'
                     },
                     endAdornment: loadingCep && (
                       <InputAdornment position="end">
@@ -885,6 +785,7 @@ export default function Customers() {
                 />
               </Grid>
 
+              {/* Observações */}
               <Grid item xs={12}>
                 <Typography variant="subtitle2" sx={{ mb: 2, mt: 2, color: 'text.secondary' }}>
                   Observações
@@ -908,21 +809,8 @@ export default function Customers() {
           <Button 
             onClick={() => {
               if (!saving) {
+                resetForm()
                 setOpenDialog(false)
-                setFormData({
-                  type: 'person',
-                  status: 'active',
-                  category: 'regular',
-                  address: {
-                    cep: '',
-                    logradouro: '',
-                    bairro: '',
-                    cidade: '',
-                    uf: '',
-                    complemento: '',
-                    numero: '',
-                  }
-                })
               }
             }}
             disabled={saving}
@@ -941,17 +829,15 @@ export default function Customers() {
         </DialogActions>
       </Dialog>
 
-      {/* Snackbar de feedback */}
+      {/* Feedback */}
       <Snackbar
         open={feedback.open}
-        autoHideDuration={4000}
+        autoHideDuration={6000}
         onClose={() => setFeedback(prev => ({ ...prev, open: false }))}
-        anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
       >
         <Alert 
           onClose={() => setFeedback(prev => ({ ...prev, open: false }))} 
           severity={feedback.type}
-          variant="filled"
           sx={{ width: '100%' }}
         >
           {feedback.message}
@@ -959,36 +845,4 @@ export default function Customers() {
       </Snackbar>
     </Box>
   )
-}
-
-// Funções auxiliares
-const getStageColor = (stage: string): 'info' | 'primary' | 'secondary' | 'warning' | 'success' | 'error' => {
-  const colors: { [key: string]: 'info' | 'primary' | 'secondary' | 'warning' | 'success' | 'error' } = {
-    'prospecting': 'info',
-    'qualification': 'primary',
-    'proposal': 'secondary',
-    'negotiation': 'warning',
-    'closed-won': 'success',
-    'closed-lost': 'error',
-  }
-  return colors[stage] || 'default'
-}
-
-const getStageLabel = (stage: string): string => {
-  const labels: { [key: string]: string } = {
-    'prospecting': 'Prospecção',
-    'qualification': 'Qualificação',
-    'proposal': 'Proposta',
-    'negotiation': 'Negociação',
-    'closed-won': 'Fechado (Ganho)',
-    'closed-lost': 'Fechado (Perdido)',
-  }
-  return labels[stage] || stage
-}
-
-const formatCurrency = (value: number): string => {
-  return new Intl.NumberFormat('pt-BR', {
-    style: 'currency',
-    currency: 'BRL'
-  }).format(value)
 } 

@@ -1,66 +1,67 @@
+import { useState, useEffect } from 'react'
 import { Box, Grid, Paper, Typography, useTheme } from '@mui/material'
-import TrendingUpIcon from '@mui/icons-material/TrendingUp'
+import AttachMoneyIcon from '@mui/icons-material/AttachMoney'
 import PeopleIcon from '@mui/icons-material/People'
 import InventoryIcon from '@mui/icons-material/Inventory'
-import AttachMoneyIcon from '@mui/icons-material/AttachMoney'
+import TrendingUpIcon from '@mui/icons-material/TrendingUp'
+import { collection, getDocs, query, where } from 'firebase/firestore'
+import { db } from '../config/firebase'
 
-const StatCard = ({ title, value, icon, color }: { title: string; value: string; icon: React.ReactNode; color: string }) => {
-  const theme = useTheme()
-  
+interface StatCardProps {
+  title: string
+  value: string
+  icon: React.ReactNode
+  color: string
+  percentageChange?: string
+}
+
+function StatCard({ title, value, icon, color, percentageChange }: StatCardProps) {
   return (
     <Paper
       sx={{
         p: 3,
+        borderRadius: 3,
         height: '100%',
-        display: 'flex',
         position: 'relative',
         overflow: 'hidden',
-        alignItems: 'center',
-        borderRadius: 3,
-        '&:before': {
+        '&::before': {
           content: '""',
           position: 'absolute',
-          width: 210,
-          height: 210,
-          background: color,
-          borderRadius: '50%',
-          top: -85,
-          right: -95,
-          opacity: 0.1,
+          top: 0,
+          right: 0,
+          width: '100px',
+          height: '100%',
+          background: `linear-gradient(to right, transparent, ${color}15)`,
+          transform: 'skewX(-15deg)',
+          transformOrigin: 'top right',
         },
       }}
     >
-      <Box sx={{ mr: 2 }}>
-        <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+      <Box sx={{ position: 'relative', zIndex: 1 }}>
+        <Typography color="text.secondary" gutterBottom>
           {title}
         </Typography>
-        <Typography variant="h4" sx={{ color: 'text.primary', mb: 1 }}>
+        <Typography variant="h4" component="div" gutterBottom>
           {value}
         </Typography>
-        <Typography
-          variant="subtitle2"
-          sx={{
-            color: theme.palette.success.main,
-            display: 'flex',
-            alignItems: 'center',
-            gap: 0.5,
-          }}
-        >
-          <TrendingUpIcon fontSize="small" />
-          +2.6%
-        </Typography>
+        {percentageChange && (
+          <Typography 
+            variant="body2" 
+            color={percentageChange.startsWith('-') ? 'error.main' : 'success.main'}
+            sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}
+          >
+            {percentageChange}
+          </Typography>
+        )}
       </Box>
       <Box
         sx={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          width: 64,
-          height: 64,
-          borderRadius: 2,
-          backgroundColor: color,
-          color: 'white',
-          ml: 'auto',
+          position: 'absolute',
+          top: '50%',
+          right: 20,
+          transform: 'translateY(-50%)',
+          color: color,
+          opacity: 0.8,
         }}
       >
         {icon}
@@ -71,6 +72,78 @@ const StatCard = ({ title, value, icon, color }: { title: string; value: string;
 
 export default function Dashboard() {
   const theme = useTheme()
+  const [loading, setLoading] = useState(true)
+  const [dashboardData, setDashboardData] = useState({
+    monthlyRevenue: 0,
+    activeCustomers: 0,
+    productsInStock: 0,
+    totalProfit: 0
+  })
+
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      try {
+        // Buscar vendas do mês atual
+        const now = new Date()
+        const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
+        const lastDayOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0)
+        
+        const opportunitiesRef = collection(db, 'opportunities')
+        const monthlyOpportunitiesQuery = query(
+          opportunitiesRef,
+          where('stage', '==', 'closed-won'),
+          where('closedDate', '>=', firstDayOfMonth),
+          where('closedDate', '<=', lastDayOfMonth)
+        )
+        const monthlyOpportunitiesSnapshot = await getDocs(monthlyOpportunitiesQuery)
+        const monthlyRevenue = monthlyOpportunitiesSnapshot.docs.reduce(
+          (total, doc) => total + (doc.data().value || 0), 
+          0
+        )
+
+        // Buscar clientes ativos
+        const customersRef = collection(db, 'customers')
+        const activeCustomersQuery = query(
+          customersRef,
+          where('status', '==', 'active')
+        )
+        const activeCustomersSnapshot = await getDocs(activeCustomersQuery)
+        const activeCustomersCount = activeCustomersSnapshot.size
+
+        // Buscar produtos em estoque
+        const productsRef = collection(db, 'products')
+        const productsSnapshot = await getDocs(productsRef)
+        const productsInStock = productsSnapshot.docs.reduce(
+          (total, doc) => total + (doc.data().stockQuantity || 0),
+          0
+        )
+
+        // Calcular lucro total (30% das vendas para exemplo)
+        const totalProfit = monthlyRevenue * 0.3
+
+        setDashboardData({
+          monthlyRevenue,
+          activeCustomers: activeCustomersCount,
+          productsInStock,
+          totalProfit
+        })
+
+      } catch (error) {
+        console.error('Erro ao buscar dados do dashboard:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchDashboardData()
+  }, [])
+
+  const formatCurrency = (value: number): string => {
+    return new Intl.NumberFormat('pt-BR', {
+      style: 'currency',
+      currency: 'BRL'
+    }).format(value)
+  }
 
   return (
     <Box>
@@ -89,33 +162,37 @@ export default function Dashboard() {
         <Grid item xs={12} sm={6} md={3}>
           <StatCard
             title="Vendas do Mês"
-            value="R$ 23.500"
+            value={loading ? '...' : formatCurrency(dashboardData.monthlyRevenue)}
             icon={<AttachMoneyIcon sx={{ fontSize: 32 }} />}
             color={theme.palette.primary.main}
+            percentageChange="+2.6%"
           />
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
           <StatCard
             title="Clientes Ativos"
-            value="48"
+            value={loading ? '...' : dashboardData.activeCustomers.toString()}
             icon={<PeopleIcon sx={{ fontSize: 32 }} />}
             color={theme.palette.secondary.main}
+            percentageChange="+2.6%"
           />
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
           <StatCard
             title="Produtos em Estoque"
-            value="156"
+            value={loading ? '...' : dashboardData.productsInStock.toString()}
             icon={<InventoryIcon sx={{ fontSize: 32 }} />}
             color={theme.palette.success.main}
+            percentageChange="+2.6%"
           />
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
           <StatCard
             title="Lucro Total"
-            value="R$ 8.320"
+            value={loading ? '...' : formatCurrency(dashboardData.totalProfit)}
             icon={<TrendingUpIcon sx={{ fontSize: 32 }} />}
             color={theme.palette.info.main}
+            percentageChange="+2.6%"
           />
         </Grid>
 
