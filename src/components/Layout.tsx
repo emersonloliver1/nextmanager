@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Outlet, useNavigate, useLocation } from 'react-router-dom'
+import { useAuthState } from 'react-firebase-hooks/auth'
 import {
   Box,
   Drawer,
@@ -12,6 +13,7 @@ import {
   Avatar,
   IconButton,
   Collapse,
+  Tooltip,
 } from '@mui/material'
 import DashboardIcon from '@mui/icons-material/Dashboard'
 import PeopleIcon from '@mui/icons-material/People'
@@ -112,6 +114,7 @@ const menuItems: MenuItem[] = [
 export default function Layout() {
   const navigate = useNavigate()
   const location = useLocation()
+  const [user] = useAuthState(auth)
   const [open, setOpen] = useState<{ [key: string]: boolean }>({})
   const [mobileOpen, setMobileOpen] = useState(false)
 
@@ -226,11 +229,45 @@ export default function Layout() {
   const drawer = (
     <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
       {/* Logo */}
-      <Box sx={{ p: 2, display: 'flex', alignItems: 'center', gap: 2 }}>
-        <Avatar sx={{ bgcolor: 'primary.main' }}>N</Avatar>
-        <Typography variant="h6" noWrap component="div">
+      <Box sx={{ p: 2, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <Typography 
+          variant="h5" 
+          sx={{ 
+            fontWeight: 'bold',
+            background: 'linear-gradient(45deg, #1976d2 30%, #9c27b0 90%)',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
+          }}
+        >
           NextManager
         </Typography>
+      </Box>
+
+      <Divider sx={{ mb: 2 }} />
+
+      {/* Informações do Usuário */}
+      <Box sx={{ px: 2, mb: 2 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1 }}>
+          <Avatar 
+            sx={{ width: 48, height: 48 }}
+            src={user?.photoURL || undefined}
+            alt={user?.displayName || 'Usuário'}
+          >
+            {!user?.photoURL && (user?.displayName?.charAt(0) || user?.email?.charAt(0).toUpperCase() || 'U')}
+          </Avatar>
+          <Box>
+            <Tooltip title={user?.displayName || user?.email || ''}>
+              <Typography variant="subtitle1" noWrap sx={{ maxWidth: 180 }}>
+                {user?.displayName || 'Usuário'}
+              </Typography>
+            </Tooltip>
+            <Tooltip title={user?.email || ''}>
+              <Typography variant="body2" color="text.secondary" noWrap sx={{ maxWidth: 180 }}>
+                {user?.email}
+              </Typography>
+            </Tooltip>
+          </Box>
+        </Box>
       </Box>
 
       <Divider sx={{ mb: 2 }} />

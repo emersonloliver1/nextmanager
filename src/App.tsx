@@ -14,6 +14,7 @@ import Campaigns from './pages/Campaigns'
 import Sales from './pages/Sales'
 import POS from './pages/POS'
 import Quotes from './pages/Quotes'
+import Settings from './pages/Settings'
 import ComingSoon from './components/ComingSoon'
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
@@ -72,7 +73,7 @@ function App() {
           <Route path="analytics" element={<ComingSoon module="Analytics" />} />
           
           {/* Configurações */}
-          <Route path="settings" element={<ComingSoon module="Configurações" />} />
+          <Route path="settings" element={<Settings />} />
         </Route>
       </Routes>
     </ThemeProvider>
