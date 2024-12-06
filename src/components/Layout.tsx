@@ -106,22 +106,25 @@ const menuItems: MenuItem[] = [
       { text: 'Relatórios', icon: <BarChartIcon />, path: '/dashboard/reports' },
       { text: 'Analytics', icon: <TimelineIcon />, path: '/dashboard/analytics' },
     ]
-  },
-  { 
-    text: 'Configurações', 
-    icon: <SettingsIcon />, 
-    path: '/dashboard/settings' 
-  },
+  }
 ]
 
-// Detecta se está rodando no Electron
-const isElectron = 'electron' in window
-
 export default function Layout() {
-  const [mobileOpen, setMobileOpen] = useState(false)
-  const [openMenus, setOpenMenus] = useState<{ [key: string]: boolean }>({})
   const navigate = useNavigate()
   const location = useLocation()
+  const [open, setOpen] = useState<{ [key: string]: boolean }>({})
+  const [mobileOpen, setMobileOpen] = useState(false)
+
+  useEffect(() => {
+    // Inicializar o estado de expansão dos menus
+    const initialOpen = menuItems.reduce((acc, item) => {
+      if (item.children) {
+        acc[item.text] = item.children.some(child => location.pathname === child.path)
+      }
+      return acc
+    }, {} as { [key: string]: boolean })
+    setOpen(initialOpen)
+  }, [location.pathname])
 
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen)
@@ -136,35 +139,37 @@ export default function Layout() {
     }
   }
 
-  const handleMenuClick = (item: MenuItem) => {
+  const handleClick = (item: MenuItem) => {
     if (item.children) {
-      setOpenMenus(prev => ({
-        ...prev,
-        [item.text]: !prev[item.text]
-      }))
+      setOpen(prev => ({ ...prev, [item.text]: !prev[item.text] }))
     } else if (item.path) {
       navigate(item.path)
+      setMobileOpen(false)
     }
   }
 
-  const renderMenuItem = (item: MenuItem, depth = 0) => {
-    const hasChildren = item.children && item.children.length > 0
+  const renderMenuItem = (item: MenuItem) => {
     const isSelected = item.path === location.pathname
-    const isOpen = openMenus[item.text]
+    const hasChildren = item.children && item.children.length > 0
+    const isOpen = open[item.text]
 
     return (
-      <>
+      <div key={item.text}>
         <ListItemButton
-          onClick={() => handleMenuClick(item)}
-          selected={isSelected}
+          onClick={() => handleClick(item)}
+          selected={isSelected || (hasChildren && item.children?.some(child => child.path === location.pathname))}
           sx={{
-            pl: 2 + depth * 2,
-            py: 1,
+            borderRadius: 1,
+            mx: 1,
+            mb: 0.5,
             '&.Mui-selected': {
-              bgcolor: 'primary.light',
-              color: 'primary.main',
+              backgroundColor: 'primary.main',
+              color: 'white',
+              '&:hover': {
+                backgroundColor: 'primary.dark',
+              },
               '& .MuiListItemIcon-root': {
-                color: 'primary.main',
+                color: 'white',
               },
             },
           }}
@@ -174,101 +179,92 @@ export default function Layout() {
               {item.icon}
             </ListItemIcon>
           )}
-          <ListItemText 
-            primary={item.text}
-            primaryTypographyProps={{
-              fontSize: '0.875rem',
-              fontWeight: isSelected ? 'medium' : 'regular',
-            }}
-          />
+          <ListItemText primary={item.text} />
           {hasChildren && (isOpen ? <ExpandLess /> : <ExpandMore />)}
         </ListItemButton>
+
         {hasChildren && (
           <Collapse in={isOpen} timeout="auto" unmountOnExit>
             <List component="div" disablePadding>
-              {item.children.map((child, index) => (
-                <Box key={child.text || index}>
-                  {renderMenuItem(child, depth + 1)}
-                </Box>
+              {item.children?.map(child => (
+                <ListItemButton
+                  key={child.text}
+                  onClick={() => handleClick(child)}
+                  selected={child.path === location.pathname}
+                  sx={{
+                    pl: 4,
+                    borderRadius: 1,
+                    mx: 1,
+                    mb: 0.5,
+                    '&.Mui-selected': {
+                      backgroundColor: 'primary.main',
+                      color: 'white',
+                      '&:hover': {
+                        backgroundColor: 'primary.dark',
+                      },
+                      '& .MuiListItemIcon-root': {
+                        color: 'white',
+                      },
+                    },
+                  }}
+                >
+                  {child.icon && (
+                    <ListItemIcon sx={{ minWidth: 40 }}>
+                      {child.icon}
+                    </ListItemIcon>
+                  )}
+                  <ListItemText primary={child.text} />
+                </ListItemButton>
               ))}
             </List>
           </Collapse>
         )}
-      </>
+      </div>
     )
   }
 
   const drawer = (
     <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-      <Box
-        sx={{
-          height: '64px',
-          display: 'flex',
-          alignItems: 'center',
-          px: 3,
-          borderBottom: '1px solid',
-          borderColor: 'grey.200',
-        }}
-      >
-        <Typography variant="h6" color="primary" fontWeight="bold">
+      {/* Logo */}
+      <Box sx={{ p: 2, display: 'flex', alignItems: 'center', gap: 2 }}>
+        <Avatar sx={{ bgcolor: 'primary.main' }}>N</Avatar>
+        <Typography variant="h6" noWrap component="div">
           NextManager
         </Typography>
       </Box>
 
-      <Box sx={{ p: 2 }}>
-        <Box
-          sx={{
-            p: 2,
-            borderRadius: 2,
-            bgcolor: 'grey.100',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 2,
-          }}
-        >
-          <Avatar
-            sx={{
-              bgcolor: 'primary.main',
-              color: 'white',
-              width: 40,
-              height: 40,
-            }}
-          >
-            A
-          </Avatar>
-          <Box>
-            <Typography variant="subtitle2" fontWeight="medium">
-              Administrador
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              admin@nextmanager.com
-            </Typography>
-          </Box>
-        </Box>
-      </Box>
+      <Divider sx={{ mb: 2 }} />
 
-      <List sx={{ flex: 1, px: 2 }}>
-        {menuItems.map((item, index) => (
-          <Box key={item.text || index}>
-            {renderMenuItem(item)}
-          </Box>
-        ))}
+      {/* Menu Items */}
+      <List sx={{ flex: 1, overflowY: 'auto' }}>
+        {menuItems.map(renderMenuItem)}
       </List>
 
-      <Divider sx={{ mx: 2, mb: 2 }} />
-      
-      <Box sx={{ p: 2 }}>
+      <Divider />
+
+      {/* Settings and Logout */}
+      <List>
+        <ListItemButton
+          onClick={() => navigate('/dashboard/settings')}
+          selected={location.pathname === '/dashboard/settings'}
+          sx={{
+            borderRadius: 1,
+            mx: 1,
+            mb: 0.5,
+          }}
+        >
+          <ListItemIcon>
+            <SettingsIcon />
+          </ListItemIcon>
+          <ListItemText primary="Configurações" />
+        </ListItemButton>
+
         <ListItemButton
           onClick={handleLogout}
           sx={{
-            borderRadius: 2,
-            '&:hover': {
-              bgcolor: 'error.light',
-              color: 'error.main',
-              '& .MuiListItemIcon-root': {
-                color: 'error.main',
-              },
-            },
+            borderRadius: 1,
+            mx: 1,
+            mb: 0.5,
           }}
         >
           <ListItemIcon>
@@ -276,119 +272,86 @@ export default function Layout() {
           </ListItemIcon>
           <ListItemText primary="Sair" />
         </ListItemButton>
-      </Box>
+      </List>
     </Box>
   )
 
   return (
-    <Box
-      sx={{
-        display: 'flex',
-        minHeight: '100vh',
-        bgcolor: 'background.default',
-      }}
-    >
-      {/* Barra superior apenas para Electron */}
-      {isElectron && (
-        <Box
-          sx={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            height: '32px',
-            bgcolor: 'primary.main',
-            zIndex: 1300,
-            WebkitAppRegion: 'drag',
-          }}
-        />
-      )}
-
-      {/* Container principal ajustado para web/desktop */}
+    <Box sx={{ display: 'flex', minHeight: '100vh' }}>
+      {/* Mobile Menu Button */}
       <Box
+        component="nav"
         sx={{
-          display: 'flex',
-          width: '100%',
-          mt: isElectron ? '32px' : 0,
+          position: 'fixed',
+          top: 16,
+          left: 16,
+          zIndex: 1200,
+          display: { sm: 'none' },
         }}
       >
-        <Box
-          component="nav"
+        <IconButton
+          color="inherit"
+          aria-label="open drawer"
+          edge="start"
+          onClick={handleDrawerToggle}
           sx={{
-            width: { sm: drawerWidth },
-            flexShrink: { sm: 0 },
+            bgcolor: 'background.paper',
+            boxShadow: 1,
+            '&:hover': {
+              bgcolor: 'background.paper',
+            },
           }}
         >
-          <Drawer
-            variant="temporary"
-            open={mobileOpen}
-            onClose={handleDrawerToggle}
-            ModalProps={{
-              keepMounted: true,
-            }}
-            sx={{
-              display: { xs: 'block', sm: 'none' },
-              '& .MuiDrawer-paper': {
-                boxSizing: 'border-box',
-                width: drawerWidth,
-                borderRight: '1px solid',
-                borderColor: 'grey.200',
-                mt: isElectron ? '32px' : 0,
-              },
-            }}
-          >
-            {drawer}
-          </Drawer>
-          <Drawer
-            variant="permanent"
-            sx={{
-              display: { xs: 'none', sm: 'block' },
-              '& .MuiDrawer-paper': {
-                boxSizing: 'border-box',
-                width: drawerWidth,
-                borderRight: '1px solid',
-                borderColor: 'grey.200',
-                boxShadow: 'none',
-                mt: isElectron ? '32px' : 0,
-              },
-            }}
-            open
-          >
-            {drawer}
-          </Drawer>
-        </Box>
+          <MenuIcon />
+        </IconButton>
+      </Box>
 
-        <Box
-          component="main"
-          sx={{
-            flexGrow: 1,
-            p: 3,
-            width: { sm: `calc(100% - ${drawerWidth}px)` },
-          }}
-        >
-          {/* Barra de título */}
-          <Box
-            sx={{
-              display: 'flex',
-              alignItems: 'center',
-              mb: 3,
-              height: '64px',
-            }}
-          >
-            <IconButton
-              color="inherit"
-              aria-label="open drawer"
-              edge="start"
-              onClick={handleDrawerToggle}
-              sx={{ mr: 2, display: { sm: 'none' } }}
-            >
-              <MenuIcon />
-            </IconButton>
-          </Box>
+      {/* Mobile Drawer */}
+      <Drawer
+        variant="temporary"
+        open={mobileOpen}
+        onClose={handleDrawerToggle}
+        ModalProps={{
+          keepMounted: true,
+        }}
+        sx={{
+          display: { xs: 'block', sm: 'none' },
+          '& .MuiDrawer-paper': {
+            boxSizing: 'border-box',
+            width: drawerWidth,
+          },
+        }}
+      >
+        {drawer}
+      </Drawer>
 
-          {/* Conteúdo principal */}
-          <Outlet />
-        </Box>
+      {/* Desktop Drawer */}
+      <Drawer
+        variant="permanent"
+        sx={{
+          display: { xs: 'none', sm: 'block' },
+          '& .MuiDrawer-paper': {
+            boxSizing: 'border-box',
+            width: drawerWidth,
+          },
+        }}
+        open
+      >
+        {drawer}
+      </Drawer>
+
+      {/* Main Content */}
+      <Box
+        component="main"
+        sx={{
+          flexGrow: 1,
+          p: 3,
+          width: { sm: `calc(100% - ${drawerWidth}px)` },
+          ml: { sm: `${drawerWidth}px` },
+          bgcolor: 'background.default',
+        }}
+      >
+        <Outlet />
       </Box>
     </Box>
   )

@@ -1,5 +1,5 @@
 [build]
-  command = "npm run build"
+  command = "CI=false npm run build"
   publish = "dist"
 
 [build.environment]
@@ -10,10 +10,6 @@
   from = "/*"
   to = "/index.html"
   status = 200
-
-# Adicionar cache para melhorar o build
-[[plugins]]
-  package = "@netlify/plugin-nextjs"
 
 [functions]
   node_bundler = "esbuild"

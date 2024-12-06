@@ -11,6 +11,9 @@ import Dashboard from './pages/Dashboard'
 import Customers from './pages/Customers'
 import Opportunities from './pages/Opportunities'
 import Campaigns from './pages/Campaigns'
+import Sales from './pages/Sales'
+import POS from './pages/POS'
+import Quotes from './pages/Quotes'
 import ComingSoon from './components/ComingSoon'
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
@@ -44,9 +47,9 @@ function App() {
           <Route path="support" element={<ComingSoon module="Atendimento" />} />
           
           {/* Vendas */}
-          <Route path="sales" element={<ComingSoon module="Pedidos" />} />
-          <Route path="pos" element={<ComingSoon module="PDV" />} />
-          <Route path="quotes" element={<ComingSoon module="Orçamentos" />} />
+          <Route path="sales" element={<Sales />} />
+          <Route path="pos" element={<POS />} />
+          <Route path="quotes" element={<Quotes />} />
           
           {/* Produtos & Estoque */}
           <Route path="products" element={<ComingSoon module="Produtos" />} />

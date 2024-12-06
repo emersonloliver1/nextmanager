@@ -1,125 +1,143 @@
 import { createTheme } from '@mui/material/styles'
+import { ptBR } from '@mui/material/locale'
 
 const theme = createTheme({
   palette: {
+    mode: 'light',
     primary: {
-      main: '#4A90E2',
-      light: '#7FB5FF',
-      dark: '#2171D1',
+      main: '#1976d2',
+      light: '#42a5f5',
+      dark: '#1565c0',
     },
     secondary: {
-      main: '#82B1FF',
-      light: '#B6E3FF',
-      dark: '#4D82CB',
+      main: '#9c27b0',
+      light: '#ba68c8',
+      dark: '#7b1fa2',
     },
-    background: {
-      default: '#F5F7FA',
-      paper: '#FFFFFF',
+    error: {
+      main: '#d32f2f',
+      light: '#ef5350',
+      dark: '#c62828',
     },
-    text: {
-      primary: '#2C3E50',
-      secondary: '#707F8C',
+    warning: {
+      main: '#ed6c02',
+      light: '#ff9800',
+      dark: '#e65100',
+    },
+    info: {
+      main: '#0288d1',
+      light: '#03a9f4',
+      dark: '#01579b',
+    },
+    success: {
+      main: '#2e7d32',
+      light: '#4caf50',
+      dark: '#1b5e20',
     },
     grey: {
-      50: '#F8FAFC',
-      100: '#F1F4F8',
-      200: '#E3E8EF',
-      300: '#CDD5DF',
-      400: '#9AA4B2',
-      500: '#707F8C',
-      600: '#4C5967',
-      700: '#364049',
-      800: '#252D37',
-      900: '#1A202C',
+      50: '#fafafa',
+      100: '#f5f5f5',
+      200: '#eeeeee',
+      300: '#e0e0e0',
+      400: '#bdbdbd',
+      500: '#9e9e9e',
+      600: '#757575',
+      700: '#616161',
+      800: '#424242',
+      900: '#212121',
+      A100: '#f5f5f5',
+      A200: '#eeeeee',
+      A400: '#bdbdbd',
+      A700: '#616161',
+    },
+    text: {
+      primary: 'rgba(0, 0, 0, 0.87)',
+      secondary: 'rgba(0, 0, 0, 0.6)',
+      disabled: 'rgba(0, 0, 0, 0.38)',
+    },
+    divider: 'rgba(0, 0, 0, 0.12)',
+    background: {
+      paper: '#fff',
+      default: '#f5f5f5',
     },
   },
   typography: {
-    fontFamily: '"Inter", "Roboto", "Helvetica", "Arial", sans-serif',
+    fontFamily: [
+      '-apple-system',
+      'BlinkMacSystemFont',
+      '"Segoe UI"',
+      'Roboto',
+      '"Helvetica Neue"',
+      'Arial',
+      'sans-serif',
+      '"Apple Color Emoji"',
+      '"Segoe UI Emoji"',
+      '"Segoe UI Symbol"',
+    ].join(','),
+    h1: {
+      fontSize: '2.5rem',
+      fontWeight: 500,
+    },
+    h2: {
+      fontSize: '2rem',
+      fontWeight: 500,
+    },
+    h3: {
+      fontSize: '1.75rem',
+      fontWeight: 500,
+    },
     h4: {
-      fontWeight: 600,
-      color: '#2C3E50',
+      fontSize: '1.5rem',
+      fontWeight: 500,
     },
     h5: {
+      fontSize: '1.25rem',
       fontWeight: 500,
-      color: '#2C3E50',
     },
     h6: {
+      fontSize: '1rem',
       fontWeight: 500,
-      color: '#2C3E50',
     },
   },
+  shape: {
+    borderRadius: 4,
+  },
+  breakpoints: {
+    values: {
+      xs: 0,
+      sm: 600,
+      md: 960,
+      lg: 1280,
+      xl: 1920,
+    },
+  },
+  spacing: (factor: number) => `${0.25 * factor}rem`,
   components: {
     MuiButton: {
       styleOverrides: {
         root: {
           textTransform: 'none',
-          borderRadius: 8,
-          fontWeight: 500,
-          boxShadow: 'none',
-          '&:hover': {
-            boxShadow: 'none',
-          },
         },
-        contained: {
-          '&:hover': {
-            boxShadow: 'none',
-          },
-        },
+      },
+    },
+    MuiTextField: {
+      defaultProps: {
+        variant: 'outlined',
+        size: 'small',
       },
     },
     MuiPaper: {
+      defaultProps: {
+        elevation: 0,
+      },
       styleOverrides: {
         root: {
-          borderRadius: 12,
-          boxShadow: '0px 2px 4px rgba(0, 0, 0, 0.05)',
-        },
-      },
-    },
-    MuiDrawer: {
-      styleOverrides: {
-        paper: {
-          borderRight: 'none',
-          backgroundColor: '#FFFFFF',
-        },
-      },
-    },
-    MuiListItemButton: {
-      styleOverrides: {
-        root: {
-          borderRadius: 8,
-          margin: '4px 8px',
-          '&.Mui-selected': {
-            backgroundColor: '#F1F4F8',
-            '&:hover': {
-              backgroundColor: '#E3E8EF',
-            },
-          },
-          '&:hover': {
-            backgroundColor: '#F8FAFC',
-          },
-        },
-      },
-    },
-    MuiListItemIcon: {
-      styleOverrides: {
-        root: {
-          color: '#707F8C',
-          minWidth: 40,
+          backgroundImage: 'none',
         },
       },
     },
   },
-  shape: {
-    borderRadius: 8,
-  },
-  shadows: [
-    'none',
-    '0px 2px 4px rgba(0, 0, 0, 0.05)',
-    '0px 4px 8px rgba(0, 0, 0, 0.05)',
-    '0px 8px 16px rgba(0, 0, 0, 0.05)',
-    '0px 16px 24px rgba(0, 0, 0, 0.05)',
-    ...Array(20).fill('none'),
-  ],
-})
+}, ptBR)
 
 export default theme
+
