@@ -3,6 +3,10 @@
   "private": true,
   "version": "0.1.0",
   "type": "module",
+  "engines": {
+    "node": ">=18.17.0",
+    "npm": ">=10.2.3"
+  },
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
@@ -19,14 +23,13 @@
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-firebase-hooks": "^5.1.1",
-    "react-input-mask": "^2.0.4",
+    "react-imask": "^6.6.1",
     "react-router-dom": "^6.20.1"
   },
   "devDependencies": {
     "@types/node": "^20.10.4",
     "@types/react": "^18.2.45",
     "@types/react-dom": "^18.2.17",
-    "@types/react-input-mask": "^3.0.5",
     "@vitejs/plugin-react": "^4.2.1",
     "typescript": "^5.3.3",
     "vite": "^5.0.7"

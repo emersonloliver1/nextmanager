@@ -48,7 +48,8 @@ import {
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { collection, query, where, getDocs, getDoc, doc, addDoc, updateDoc, deleteDoc, orderBy } from 'firebase/firestore'
 import { db } from '../config/firebase'
-import InputMask from 'react-input-mask'
+import { IMaskInput } from 'react-imask'
+import { forwardRef } from 'react'
 import { formatCPF, formatCNPJ, isValidCPF, isValidCNPJ } from '@brazilian-utils/brazilian-utils'
 import axios from 'axios'
 
@@ -77,6 +78,32 @@ interface Customer {
   createdAt: Date
   updatedAt: Date
 }
+
+interface CustomMaskProps {
+  onChange: (event: { target: { name: string; value: string } }) => void;
+  name: string;
+  mask: string;
+}
+
+const TextMaskCustom = forwardRef<HTMLElement, CustomMaskProps>(
+  function TextMaskCustom(props, ref) {
+    const { onChange, mask, ...other } = props;
+    return (
+      <IMaskInput
+        {...other}
+        mask={mask}
+        definitions={{
+          '#': /[0-9]/
+        }}
+        inputRef={ref}
+        onAccept={(value: any) => 
+          onChange({ target: { name: props.name, value } })
+        }
+        overwrite
+      />
+    );
+  }
+);
 
 export default function Customers() {
   const [customers, setCustomers] = useState<Customer[]>([])
@@ -666,22 +693,22 @@ export default function Customers() {
               </Grid>
 
               <Grid item xs={12} sm={6}>
-                <InputMask
-                  mask={formData.type === 'person' ? '999.999.999-99' : '99.999.999/9999-99'}
+                <TextField
+                  fullWidth
+                  label={formData.type === 'person' ? 'CPF' : 'CNPJ'}
                   value={formData.document || ''}
                   onChange={handleDocumentChange}
-                >
-                  {(inputProps: any) => (
-                    <TextField
-                      {...inputProps}
-                      fullWidth
-                      label={formData.type === 'person' ? 'CPF' : 'CNPJ'}
-                      error={!!documentError}
-                      helperText={documentError}
-                      required
-                    />
-                  )}
-                </InputMask>
+                  name="document"
+                  error={!!documentError}
+                  helperText={documentError}
+                  required
+                  InputProps={{
+                    inputComponent: TextMaskCustom as any,
+                    inputProps: {
+                      mask: formData.type === 'person' ? '000.000.000-00' : '00.000.000/0000-00',
+                    }
+                  }}
+                />
               </Grid>
 
               <Grid item xs={12} sm={6}>
@@ -714,20 +741,20 @@ export default function Customers() {
               </Grid>
 
               <Grid item xs={12} sm={6}>
-                <InputMask
-                  mask="(99) 99999-9999"
+                <TextField
+                  fullWidth
+                  label="Telefone"
                   value={formData.phone || ''}
                   onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
-                >
-                  {(inputProps: any) => (
-                    <TextField
-                      {...inputProps}
-                      fullWidth
-                      label="Telefone"
-                      required
-                    />
-                  )}
-                </InputMask>
+                  name="phone"
+                  required
+                  InputProps={{
+                    inputComponent: TextMaskCustom as any,
+                    inputProps: {
+                      mask: '(00) 00000-0000',
+                    }
+                  }}
+                />
               </Grid>
 
               <Grid item xs={12}>
@@ -748,8 +775,9 @@ export default function Customers() {
               </Grid>
 
               <Grid item xs={12} sm={4}>
-                <InputMask
-                  mask="99999-999"
+                <TextField
+                  fullWidth
+                  label="CEP"
                   value={formData.address?.cep || ''}
                   onChange={(e) => {
                     const value = e.target.value
@@ -761,25 +789,22 @@ export default function Customers() {
                       searchCep(value)
                     }
                   }}
-                >
-                  {(inputProps: any) => (
-                    <TextField
-                      {...inputProps}
-                      fullWidth
-                      label="CEP"
-                      error={!!cepError}
-                      helperText={cepError}
-                      required
-                      InputProps={{
-                        endAdornment: loadingCep && (
-                          <InputAdornment position="end">
-                            <CircularProgress size={20} />
-                          </InputAdornment>
-                        )
-                      }}
-                    />
-                  )}
-                </InputMask>
+                  name="cep"
+                  error={!!cepError}
+                  helperText={cepError}
+                  required
+                  InputProps={{
+                    inputComponent: TextMaskCustom as any,
+                    inputProps: {
+                      mask: '00000-000',
+                    },
+                    endAdornment: loadingCep && (
+                      <InputAdornment position="end">
+                        <CircularProgress size={20} />
+                      </InputAdornment>
+                    )
+                  }}
+                />
               </Grid>
 
               <Grid item xs={12} sm={8}>
