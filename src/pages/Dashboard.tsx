@@ -4,7 +4,7 @@ import AttachMoneyIcon from '@mui/icons-material/AttachMoney'
 import PeopleIcon from '@mui/icons-material/People'
 import InventoryIcon from '@mui/icons-material/Inventory'
 import TrendingUpIcon from '@mui/icons-material/TrendingUp'
-import { collection, getDocs, query, where } from 'firebase/firestore'
+import { collection, query, where, getDocs, orderBy, Timestamp } from 'firebase/firestore'
 import { db } from '../config/firebase'
 
 interface StatCardProps {
@@ -12,7 +12,7 @@ interface StatCardProps {
   value: string
   icon: React.ReactNode
   color: string
-  percentageChange?: string
+  percentageChange?: string | null
 }
 
 function StatCard({ title, value, icon, color, percentageChange }: StatCardProps) {
@@ -77,26 +77,64 @@ export default function Dashboard() {
     monthlyRevenue: 0,
     activeCustomers: 0,
     productsInStock: 0,
-    totalProfit: 0
+    totalProfit: 0,
+    revenueChange: null,
+    customersChange: null,
+    productsChange: null,
+    profitChange: null
   })
+
+  // Função para calcular a variação percentual
+  const calculatePercentageChange = (current: number, previous: number): string => {
+    if (previous === 0) return '+100%'
+    const change = ((current - previous) / previous) * 100
+    return `${change > 0 ? '+' : ''}${change.toFixed(1)}%`
+  }
+
+  // Função para formatar valores monetários
+  const formatCurrency = (value: number): string => {
+    return new Intl.NumberFormat('pt-BR', {
+      style: 'currency',
+      currency: 'BRL'
+    }).format(value)
+  }
 
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
-        // Buscar vendas do mês atual
-        const now = new Date()
-        const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
-        const lastDayOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0)
+        setLoading(true)
         
+        // Datas para filtros
+        const now = new Date()
+        const firstDayCurrentMonth = new Date(now.getFullYear(), now.getMonth(), 1)
+        const firstDayPreviousMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1)
+        const lastDayPreviousMonth = new Date(now.getFullYear(), now.getMonth(), 0)
+
+        // Buscar oportunidades fechadas (vendas)
         const opportunitiesRef = collection(db, 'opportunities')
-        const monthlyOpportunitiesQuery = query(
+        
+        // Vendas do mês atual
+        const currentMonthQuery = query(
           opportunitiesRef,
           where('stage', '==', 'closed-won'),
-          where('closedDate', '>=', firstDayOfMonth),
-          where('closedDate', '<=', lastDayOfMonth)
+          where('closedAt', '>=', firstDayCurrentMonth),
+          where('closedAt', '<=', now)
         )
-        const monthlyOpportunitiesSnapshot = await getDocs(monthlyOpportunitiesQuery)
-        const monthlyRevenue = monthlyOpportunitiesSnapshot.docs.reduce(
+        const currentMonthSnapshot = await getDocs(currentMonthQuery)
+        const currentMonthRevenue = currentMonthSnapshot.docs.reduce(
+          (total, doc) => total + (doc.data().value || 0), 
+          0
+        )
+
+        // Vendas do mês anterior
+        const previousMonthQuery = query(
+          opportunitiesRef,
+          where('stage', '==', 'closed-won'),
+          where('closedAt', '>=', firstDayPreviousMonth),
+          where('closedAt', '<=', lastDayPreviousMonth)
+        )
+        const previousMonthSnapshot = await getDocs(previousMonthQuery)
+        const previousMonthRevenue = previousMonthSnapshot.docs.reduce(
           (total, doc) => total + (doc.data().value || 0), 
           0
         )
@@ -108,24 +146,43 @@ export default function Dashboard() {
           where('status', '==', 'active')
         )
         const activeCustomersSnapshot = await getDocs(activeCustomersQuery)
-        const activeCustomersCount = activeCustomersSnapshot.size
+        const currentActiveCustomers = activeCustomersSnapshot.size
+
+        // Clientes ativos do mês anterior
+        const previousActiveCustomersQuery = query(
+          customersRef,
+          where('status', '==', 'active'),
+          where('createdAt', '<=', lastDayPreviousMonth)
+        )
+        const previousActiveCustomersSnapshot = await getDocs(previousActiveCustomersQuery)
+        const previousActiveCustomers = previousActiveCustomersSnapshot.size
 
         // Buscar produtos em estoque
         const productsRef = collection(db, 'products')
         const productsSnapshot = await getDocs(productsRef)
-        const productsInStock = productsSnapshot.docs.reduce(
+        const currentProductsInStock = productsSnapshot.docs.reduce(
           (total, doc) => total + (doc.data().stockQuantity || 0),
           0
         )
 
-        // Calcular lucro total (30% das vendas para exemplo)
-        const totalProfit = monthlyRevenue * 0.3
+        // Calcular lucro (30% das vendas para exemplo)
+        const currentProfit = currentMonthRevenue * 0.3
+        const previousProfit = previousMonthRevenue * 0.3
+
+        // Calcular variações percentuais
+        const revenueChange = calculatePercentageChange(currentMonthRevenue, previousMonthRevenue)
+        const customersChange = calculatePercentageChange(currentActiveCustomers, previousActiveCustomers)
+        const profitChange = calculatePercentageChange(currentProfit, previousProfit)
 
         setDashboardData({
-          monthlyRevenue,
-          activeCustomers: activeCustomersCount,
-          productsInStock,
-          totalProfit
+          monthlyRevenue: currentMonthRevenue,
+          activeCustomers: currentActiveCustomers,
+          productsInStock: currentProductsInStock,
+          totalProfit: currentProfit,
+          revenueChange,
+          customersChange,
+          productsChange: null, // Implementar quando tivermos histórico de estoque
+          profitChange
         })
 
       } catch (error) {
@@ -137,13 +194,6 @@ export default function Dashboard() {
 
     fetchDashboardData()
   }, [])
-
-  const formatCurrency = (value: number): string => {
-    return new Intl.NumberFormat('pt-BR', {
-      style: 'currency',
-      currency: 'BRL'
-    }).format(value)
-  }
 
   return (
     <Box>
@@ -165,7 +215,7 @@ export default function Dashboard() {
             value={loading ? '...' : formatCurrency(dashboardData.monthlyRevenue)}
             icon={<AttachMoneyIcon sx={{ fontSize: 32 }} />}
             color={theme.palette.primary.main}
-            percentageChange="+2.6%"
+            percentageChange={dashboardData.revenueChange}
           />
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
@@ -174,7 +224,7 @@ export default function Dashboard() {
             value={loading ? '...' : dashboardData.activeCustomers.toString()}
             icon={<PeopleIcon sx={{ fontSize: 32 }} />}
             color={theme.palette.secondary.main}
-            percentageChange="+2.6%"
+            percentageChange={dashboardData.customersChange}
           />
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
@@ -183,7 +233,7 @@ export default function Dashboard() {
             value={loading ? '...' : dashboardData.productsInStock.toString()}
             icon={<InventoryIcon sx={{ fontSize: 32 }} />}
             color={theme.palette.success.main}
-            percentageChange="+2.6%"
+            percentageChange={dashboardData.productsChange}
           />
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
@@ -192,7 +242,7 @@ export default function Dashboard() {
             value={loading ? '...' : formatCurrency(dashboardData.totalProfit)}
             icon={<TrendingUpIcon sx={{ fontSize: 32 }} />}
             color={theme.palette.info.main}
-            percentageChange="+2.6%"
+            percentageChange={dashboardData.profitChange}
           />
         </Grid>
 

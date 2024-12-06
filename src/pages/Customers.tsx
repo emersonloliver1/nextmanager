@@ -1,4 +1,7 @@
 import { useState, useEffect, useMemo } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { useAuthState } from 'react-firebase-hooks/auth'
+import { auth } from '../config/firebase'
 import {
   Box,
   Button,
@@ -74,6 +77,8 @@ interface Customer {
 const TextMaskCustom = IMaskInput
 
 export default function Customers() {
+  const [user, authLoading] = useAuthState(auth)
+  const navigate = useNavigate()
   const [customers, setCustomers] = useState<Customer[]>([])
   const [loading, setLoading] = useState(true)
   const [openDialog, setOpenDialog] = useState(false)
@@ -109,6 +114,13 @@ export default function Customers() {
     type: 'success'
   })
 
+  // Verificar autenticação
+  useEffect(() => {
+    if (!authLoading && !user) {
+      navigate('/login')
+    }
+  }, [user, authLoading, navigate])
+
   // Carregar clientes ao montar o componente
   useEffect(() => {
     loadCustomers()
@@ -116,6 +128,12 @@ export default function Customers() {
 
   // Função para carregar clientes
   const loadCustomers = async () => {
+    if (!user) {
+      console.error('Usuário não autenticado')
+      navigate('/login')
+      return
+    }
+
     try {
       setLoading(true)
       const customersRef = collection(db, 'customers')
@@ -135,11 +153,19 @@ export default function Customers() {
       setCustomers(customersList)
     } catch (error) {
       console.error('Erro ao carregar clientes:', error)
-      setFeedback({
-        open: true,
-        message: 'Erro ao carregar clientes. Tente novamente.',
-        type: 'error'
-      })
+      if (error instanceof Error && error.message.includes('permission-denied')) {
+        setFeedback({
+          open: true,
+          message: 'Você não tem permissão para acessar os clientes.',
+          type: 'error'
+        })
+      } else {
+        setFeedback({
+          open: true,
+          message: 'Erro ao carregar clientes. Tente novamente.',
+          type: 'error'
+        })
+      }
     } finally {
       setLoading(false)
     }
@@ -148,17 +174,36 @@ export default function Customers() {
   // Função para salvar cliente
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    console.log('Iniciando salvamento do cliente...')
+
+    if (!user) {
+      console.error('Usuário não autenticado')
+      navigate('/login')
+      return
+    }
     
+    // Validações básicas
+    if (!formData.name?.trim()) {
+      console.error('Nome é obrigatório')
+      setFeedback({
+        open: true,
+        message: 'Nome é obrigatório',
+        type: 'error'
+      })
+      return
+    }
+
     if (!validateDocument(formData.document || '', formData.type || 'person')) {
+      console.error('Documento inválido')
       return
     }
 
     try {
       setSaving(true)
-      const customersRef = collection(db, 'customers')
+      console.log('Preparando dados para salvar...')
       
       const customerData = {
-        name: formData.name || '',
+        name: formData.name?.trim(),
         type: formData.type || 'person',
         document: formData.document || '',
         phone: formData.phone || '',
@@ -175,13 +220,22 @@ export default function Customers() {
           complemento: formData.address?.complemento || '',
           numero: formData.address?.numero || '',
         },
-        updatedAt: serverTimestamp(),
+        userId: user.uid,
       }
 
+      console.log('Dados preparados:', customerData)
+
+      const customersRef = collection(db, 'customers')
+      
       if (formData.id) {
         // Atualizar cliente existente
+        console.log('Atualizando cliente existente:', formData.id)
         const docRef = doc(db, 'customers', formData.id)
-        await updateDoc(docRef, customerData)
+        await updateDoc(docRef, {
+          ...customerData,
+          updatedAt: new Date()
+        })
+        console.log('Cliente atualizado com sucesso')
         setFeedback({
           open: true,
           message: 'Cliente atualizado com sucesso!',
@@ -189,13 +243,18 @@ export default function Customers() {
         })
       } else {
         // Criar novo cliente
-        const code = await generateCustomerCode()
-        const newCustomerData = {
+        console.log('Criando novo cliente...')
+        const timestamp = Date.now()
+        const code = `CLI${String(timestamp).slice(-5)}`
+        console.log('Código gerado:', code)
+        
+        const docRef = await addDoc(customersRef, {
           ...customerData,
           code,
-          createdAt: serverTimestamp(),
-        }
-        await addDoc(customersRef, newCustomerData)
+          createdAt: new Date(),
+          updatedAt: new Date()
+        })
+        console.log('Novo cliente criado com sucesso:', docRef.id)
         setFeedback({
           open: true,
           message: 'Cliente cadastrado com sucesso!',
@@ -207,12 +266,20 @@ export default function Customers() {
       resetForm()
       setOpenDialog(false)
     } catch (error) {
-      console.error('Erro ao salvar cliente:', error)
-      setFeedback({
-        open: true,
-        message: 'Erro ao salvar cliente. Tente novamente.',
-        type: 'error'
-      })
+      console.error('Erro detalhado ao salvar cliente:', error)
+      if (error instanceof Error) {
+        setFeedback({
+          open: true,
+          message: `Erro ao salvar cliente: ${error.message}`,
+          type: 'error'
+        })
+      } else {
+        setFeedback({
+          open: true,
+          message: 'Erro ao salvar cliente. Tente novamente.',
+          type: 'error'
+        })
+      }
     } finally {
       setSaving(false)
     }
@@ -547,7 +614,16 @@ export default function Customers() {
           {formData.id ? 'Editar Cliente' : 'Novo Cliente'}
         </DialogTitle>
         <DialogContent dividers>
-          <Box component="form" onSubmit={handleSubmit} sx={{ mt: 2 }}>
+          <Box 
+            component="form" 
+            id="customerForm"
+            onSubmit={(e) => {
+              e.preventDefault()
+              handleSubmit(e)
+            }}
+            noValidate
+            sx={{ mt: 2 }}
+          >
             <Grid container spacing={2}>
               {/* Informações Básicas */}
               <Grid item xs={12}>
@@ -818,7 +894,7 @@ export default function Customers() {
             Cancelar
           </Button>
           <Button 
-            variant="contained" 
+            variant="contained"
             type="submit"
             form="customerForm"
             disabled={saving}
