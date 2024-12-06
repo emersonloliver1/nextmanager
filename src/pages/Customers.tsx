@@ -30,6 +30,8 @@ import {
   CircularProgress,
   InputAdornment,
   Skeleton,
+  Snackbar,
+  Alert,
 } from '@mui/material'
 import {
   Add as AddIcon,
@@ -103,6 +105,16 @@ export default function Customers() {
   const [cepError, setCepError] = useState('')
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
+  const [saving, setSaving] = useState(false)
+  const [feedback, setFeedback] = useState<{
+    open: boolean;
+    message: string;
+    type: 'success' | 'error';
+  }>({
+    open: false,
+    message: '',
+    type: 'success'
+  })
 
   useEffect(() => {
     loadCustomers()
@@ -147,7 +159,7 @@ export default function Customers() {
     }
 
     try {
-      setLoading(true)
+      setSaving(true)
       const customersRef = collection(db, 'customers')
       
       const customerData = {
@@ -179,12 +191,22 @@ export default function Customers() {
           ...customerData,
           updatedAt: new Date(),
         })
+        setFeedback({
+          open: true,
+          message: 'Cliente atualizado com sucesso!',
+          type: 'success'
+        })
       } else {
         // Criar novo cliente
         const code = await generateCustomerCode()
         await addDoc(customersRef, {
           ...customerData,
           code,
+        })
+        setFeedback({
+          open: true,
+          message: 'Cliente cadastrado com sucesso!',
+          type: 'success'
         })
       }
 
@@ -206,8 +228,13 @@ export default function Customers() {
       setOpenDialog(false)
     } catch (error) {
       console.error('Erro ao salvar cliente:', error)
+      setFeedback({
+        open: true,
+        message: 'Erro ao salvar cliente. Tente novamente.',
+        type: 'error'
+      })
     } finally {
-      setLoading(false)
+      setSaving(false)
     }
   }
 
@@ -574,21 +601,23 @@ export default function Customers() {
       <Dialog 
         open={openDialog} 
         onClose={() => {
-          setOpenDialog(false)
-          setFormData({
-            type: 'person',
-            status: 'active',
-            category: 'regular',
-            address: {
-              cep: '',
-              logradouro: '',
-              bairro: '',
-              cidade: '',
-              uf: '',
-              complemento: '',
-              numero: '',
-            }
-          })
+          if (!saving) {
+            setOpenDialog(false)
+            setFormData({
+              type: 'person',
+              status: 'active',
+              category: 'regular',
+              address: {
+                cep: '',
+                logradouro: '',
+                bairro: '',
+                cidade: '',
+                uf: '',
+                complemento: '',
+                numero: '',
+              }
+            })
+          }
         }}
         maxWidth="md" 
         fullWidth
@@ -853,22 +882,25 @@ export default function Customers() {
         <DialogActions>
           <Button 
             onClick={() => {
-              setOpenDialog(false)
-              setFormData({
-                type: 'person',
-                status: 'active',
-                category: 'regular',
-                address: {
-                  cep: '',
-                  logradouro: '',
-                  bairro: '',
-                  cidade: '',
-                  uf: '',
-                  complemento: '',
-                  numero: '',
-                }
-              })
+              if (!saving) {
+                setOpenDialog(false)
+                setFormData({
+                  type: 'person',
+                  status: 'active',
+                  category: 'regular',
+                  address: {
+                    cep: '',
+                    logradouro: '',
+                    bairro: '',
+                    cidade: '',
+                    uf: '',
+                    complemento: '',
+                    numero: '',
+                  }
+                })
+              }
             }}
+            disabled={saving}
           >
             Cancelar
           </Button>
@@ -876,12 +908,30 @@ export default function Customers() {
             variant="contained" 
             type="submit"
             form="customerForm"
-            disabled={loading}
+            disabled={saving}
+            startIcon={saving && <CircularProgress size={20} color="inherit" />}
           >
-            {loading ? 'Salvando...' : 'Salvar'}
+            {saving ? 'Salvando...' : 'Salvar'}
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Snackbar de feedback */}
+      <Snackbar
+        open={feedback.open}
+        autoHideDuration={4000}
+        onClose={() => setFeedback(prev => ({ ...prev, open: false }))}
+        anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+      >
+        <Alert 
+          onClose={() => setFeedback(prev => ({ ...prev, open: false }))} 
+          severity={feedback.type}
+          variant="filled"
+          sx={{ width: '100%' }}
+        >
+          {feedback.message}
+        </Alert>
+      </Snackbar>
     </Box>
   )
 }
