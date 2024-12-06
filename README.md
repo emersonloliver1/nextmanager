@@ -80,19 +80,19 @@ O NextManager é uma solução completa para gestão empresarial, integrando fun
 ## 🚀 Como Executar
 
 1. Clone o repositório:
-\`\`\`bash
-git clone https://github.com/seu-usuario/nextmanager.git
+```bash
+git clone https://github.com/emersonloliver1/nextmanager.git
 cd nextmanager
-\`\`\`
+```
 
 2. Instale as dependências:
-\`\`\`bash
+```bash
 npm install
-\`\`\`
+```
 
 3. Configure as variáveis de ambiente:
-Crie um arquivo \`.env\` na raiz do projeto:
-\`\`\`env
+Crie um arquivo `.env` na raiz do projeto:
+```env
 VITE_FIREBASE_API_KEY=sua_api_key
 VITE_FIREBASE_AUTH_DOMAIN=seu_auth_domain
 VITE_FIREBASE_PROJECT_ID=seu_project_id
@@ -100,25 +100,25 @@ VITE_FIREBASE_STORAGE_BUCKET=seu_storage_bucket
 VITE_FIREBASE_MESSAGING_SENDER_ID=seu_messaging_sender_id
 VITE_FIREBASE_APP_ID=seu_app_id
 VITE_FIREBASE_MEASUREMENT_ID=seu_measurement_id
-\`\`\`
+```
 
 4. Execute em modo desenvolvimento:
-\`\`\`bash
+```bash
 # Versão Web
 npm run dev
 
 # Versão Desktop (Electron)
 npm run electron-dev
-\`\`\`
+```
 
 5. Gerar build de produção:
-\`\`\`bash
+```bash
 # Build Web
 npm run build
 
 # Build Desktop
 npm run electron-build
-\`\`\`
+```
 
 ## 🔒 Segurança
 
@@ -147,7 +147,7 @@ Contribuições são bem-vindas! Por favor, leia nosso guia de contribuição an
 ## 📧 Suporte
 
 Para suporte, dúvidas ou sugestões:
-- Abra uma [issue](https://github.com/seu-usuario/nextmanager/issues)
+- Abra uma [issue](https://github.com/emersonloliver1/nextmanager/issues)
 - Email: suporte@nextmanager.com
 - Discord: [Comunidade NextManager](https://discord.gg/nextmanager)
 
