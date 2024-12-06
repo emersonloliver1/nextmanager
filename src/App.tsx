@@ -1,6 +1,8 @@
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { ThemeProvider } from '@mui/material/styles'
 import CssBaseline from '@mui/material/CssBaseline'
+import { useAuthState } from 'react-firebase-hooks/auth'
+import { auth } from './config/firebase'
 import theme from './theme'
 import Login from './pages/Login'
 import Layout from './components/Layout'
@@ -8,9 +10,8 @@ import LandingPage from './pages/LandingPage'
 import Dashboard from './pages/Dashboard'
 import Customers from './pages/Customers'
 import Opportunities from './pages/Opportunities'
-import { useAuthState } from 'react-firebase-hooks/auth'
-import { auth } from './config/firebase'
-import { Box, Typography, Paper } from '@mui/material'
+import Campaigns from './pages/Campaigns'
+import ComingSoon from './components/ComingSoon'
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   const [user, loading] = useAuthState(auth)
@@ -26,20 +27,6 @@ function PrivateRoute({ children }: { children: React.ReactNode }) {
   return <>{children}</>
 }
 
-// Componente temporário para módulos em desenvolvimento
-const ComingSoon = ({ module }: { module: string }) => (
-  <Box sx={{ p: 3 }}>
-    <Typography variant="h4" sx={{ mb: 2 }}>
-      {module}
-    </Typography>
-    <Paper sx={{ p: 3, textAlign: 'center' }}>
-      <Typography variant="h6" color="text.secondary">
-        Este módulo está em desenvolvimento
-      </Typography>
-    </Paper>
-  </Box>
-)
-
 function App() {
   return (
     <ThemeProvider theme={theme}>
@@ -53,7 +40,7 @@ function App() {
           {/* CRM */}
           <Route path="customers" element={<Customers />} />
           <Route path="opportunities" element={<Opportunities />} />
-          <Route path="campaigns" element={<ComingSoon module="Campanhas" />} />
+          <Route path="campaigns" element={<Campaigns />} />
           <Route path="support" element={<ComingSoon module="Atendimento" />} />
           
           {/* Vendas */}
