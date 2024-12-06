@@ -572,29 +572,36 @@ export default function Opportunities() {
                         helperText={!selectedCustomer && !isNewCustomer ? 'Selecione um cliente' : ''}
                       />
                     )}
-                    renderOption={(props, option) => (
-                      <Box component="li" {...props}>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <Avatar sx={{ width: 24, height: 24, bgcolor: option.category === 'vip' ? 'primary.main' : 'grey.400' }}>
-                            {option.type === 'person' ? <PersonIcon /> : <BusinessIcon />}
-                          </Avatar>
-                          <Box>
-                            <Typography>{option.code} - {option.name}</Typography>
-                            <Typography variant="caption" color="text.secondary">
-                              {option.document} • {option.type === 'person' ? 'Pessoa Física' : 'Pessoa Jurídica'}
-                              {option.category === 'vip' && (
-                                <Chip 
-                                  size="small" 
-                                  label="VIP" 
-                                  color="primary" 
-                                  sx={{ ml: 1, height: 16 }} 
-                                />
-                              )}
-                            </Typography>
+                    renderOption={(props, option) => {
+                      const { key, ...otherProps } = props;
+                      return (
+                        <Box
+                          key={key}
+                          {...otherProps}
+                          component="li"
+                        >
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <Avatar sx={{ width: 24, height: 24, bgcolor: option.category === 'vip' ? 'primary.main' : 'grey.400' }}>
+                              {option.type === 'person' ? <PersonIcon /> : <BusinessIcon />}
+                            </Avatar>
+                            <Box>
+                              <Typography>{option.code} - {option.name}</Typography>
+                              <Typography variant="caption" color="text.secondary">
+                                {option.document} • {option.type === 'person' ? 'Pessoa Física' : 'Pessoa Jurídica'}
+                                {option.category === 'vip' && (
+                                  <Chip 
+                                    size="small" 
+                                    label="VIP" 
+                                    color="primary" 
+                                    sx={{ ml: 1, height: 16 }} 
+                                  />
+                                )}
+                              </Typography>
+                            </Box>
                           </Box>
                         </Box>
-                      </Box>
-                    )}
+                      );
+                    }}
                     noOptionsText="Nenhum cliente encontrado"
                     loading={loading}
                     loadingText="Carregando clientes..."
