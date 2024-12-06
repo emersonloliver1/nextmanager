@@ -7,6 +7,7 @@ import Layout from './components/Layout'
 import LandingPage from './pages/LandingPage'
 import Dashboard from './pages/Dashboard'
 import Customers from './pages/Customers'
+import Opportunities from './pages/Opportunities'
 import { useAuthState } from 'react-firebase-hooks/auth'
 import { auth } from './config/firebase'
 import { Box, Typography, Paper } from '@mui/material'
@@ -51,7 +52,7 @@ function App() {
           
           {/* CRM */}
           <Route path="customers" element={<Customers />} />
-          <Route path="opportunities" element={<ComingSoon module="Oportunidades" />} />
+          <Route path="opportunities" element={<Opportunities />} />
           <Route path="campaigns" element={<ComingSoon module="Campanhas" />} />
           <Route path="support" element={<ComingSoon module="Atendimento" />} />
           

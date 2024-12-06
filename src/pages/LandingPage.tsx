@@ -1,119 +1,117 @@
+import { Box, Container, Typography, Button, Grid, Paper, useTheme, alpha } from '@mui/material'
 import {
-  Box,
-  Button,
-  Container,
-  Grid,
-  Typography,
-  Card,
-  CardContent,
-  Stack,
-  useTheme,
-  useMediaQuery
-} from '@mui/material';
-import {
-  Timeline,
-  Assessment,
-  People,
-  Inventory,
-  Speed,
-  Security
-} from '@mui/icons-material';
-import { useNavigate } from 'react-router-dom';
-
-const features = [
-  {
-    icon: <Timeline sx={{ fontSize: 40 }} />,
-    title: 'Dashboard Intuitivo',
-    description: 'Visualize todos os dados importantes do seu negócio em um só lugar'
-  },
-  {
-    icon: <Assessment sx={{ fontSize: 40 }} />,
-    title: 'Relatórios Detalhados',
-    description: 'Análises completas e exportação de dados em diversos formatos'
-  },
-  {
-    icon: <People sx={{ fontSize: 40 }} />,
-    title: 'Gestão de Equipe',
-    description: 'Controle de usuários, permissões e atividades dos colaboradores'
-  },
-  {
-    icon: <Inventory sx={{ fontSize: 40 }} />,
-    title: 'Controle de Estoque',
-    description: 'Gestão completa de produtos, entrada e saída de mercadorias'
-  },
-  {
-    icon: <Speed sx={{ fontSize: 40 }} />,
-    title: 'Alta Performance',
-    description: 'Sistema otimizado para máxima velocidade e eficiência'
-  },
-  {
-    icon: <Security sx={{ fontSize: 40 }} />,
-    title: 'Segurança Avançada',
-    description: 'Proteção de dados e backup automático na nuvem'
-  }
-];
+  Speed as SpeedIcon,
+  Security as SecurityIcon,
+  Devices as DevicesIcon,
+  Timeline as TimelineIcon,
+  People as PeopleIcon,
+  ShoppingCart as ShoppingCartIcon,
+  Assessment as AssessmentIcon,
+  MonetizationOn as MonetizationOnIcon,
+} from '@mui/icons-material'
+import { useNavigate } from 'react-router-dom'
 
 export default function LandingPage() {
-  const theme = useTheme();
-  const navigate = useNavigate();
-  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const theme = useTheme()
+  const navigate = useNavigate()
+
+  const features = [
+    {
+      icon: <SpeedIcon sx={{ fontSize: 40 }} />,
+      title: 'Rápido e Intuitivo',
+      description: 'Interface moderna e fácil de usar, sem complicações'
+    },
+    {
+      icon: <SecurityIcon sx={{ fontSize: 40 }} />,
+      title: 'Segurança Total',
+      description: 'Seus dados protegidos com a mais alta tecnologia'
+    },
+    {
+      icon: <DevicesIcon sx={{ fontSize: 40 }} />,
+      title: 'Multiplataforma',
+      description: 'Acesse de qualquer lugar, em qualquer dispositivo'
+    },
+    {
+      icon: <TimelineIcon sx={{ fontSize: 40 }} />,
+      title: 'Análises em Tempo Real',
+      description: 'Dashboards e relatórios atualizados instantaneamente'
+    },
+  ]
+
+  const modules = [
+    {
+      icon: <PeopleIcon sx={{ fontSize: 50, color: theme.palette.primary.main }} />,
+      title: 'CRM Completo',
+      description: 'Gestão de clientes, oportunidades e pipeline de vendas integrado'
+    },
+    {
+      icon: <ShoppingCartIcon sx={{ fontSize: 50, color: theme.palette.primary.main }} />,
+      title: 'Vendas & PDV',
+      description: 'Controle total das vendas, orçamentos e ponto de venda'
+    },
+    {
+      icon: <AssessmentIcon sx={{ fontSize: 50, color: theme.palette.primary.main }} />,
+      title: 'Gestão Completa',
+      description: 'Estoque, fornecedores, produtos e serviços em um só lugar'
+    },
+    {
+      icon: <MonetizationOnIcon sx={{ fontSize: 50, color: theme.palette.primary.main }} />,
+      title: 'Financeiro',
+      description: 'Controle financeiro, fluxo de caixa e contas a pagar/receber'
+    },
+  ]
 
   return (
     <Box>
       {/* Hero Section */}
       <Box
         sx={{
-          bgcolor: 'primary.main',
+          background: `linear-gradient(45deg, ${theme.palette.primary.main} 30%, ${theme.palette.primary.dark} 90%)`,
           color: 'white',
-          pt: { xs: 8, md: 12 },
-          pb: { xs: 8, md: 12 },
+          pt: 15,
+          pb: 20,
           position: 'relative',
-          overflow: 'hidden'
+          overflow: 'hidden',
+          '&::after': {
+            content: '""',
+            position: 'absolute',
+            bottom: 0,
+            left: 0,
+            right: 0,
+            height: '30%',
+            background: `linear-gradient(to top left, white 49%, transparent 51%)`,
+          },
         }}
       >
         <Container maxWidth="lg">
           <Grid container spacing={4} alignItems="center">
             <Grid item xs={12} md={6}>
-              <Typography
-                variant="h2"
-                component="h1"
-                sx={{
-                  fontWeight: 'bold',
-                  mb: 2,
-                  fontSize: { xs: '2.5rem', md: '3.5rem' }
-                }}
-              >
+              <Typography variant="h2" component="h1" fontWeight="bold" gutterBottom>
                 NextManager
               </Typography>
-              <Typography
-                variant="h5"
-                sx={{ mb: 4, opacity: 0.9 }}
-              >
-                O sistema de gestão empresarial que vai revolucionar seu negócio
+              <Typography variant="h5" sx={{ mb: 4, opacity: 0.9 }}>
+                A solução completa para gestão do seu negócio
               </Typography>
-              <Stack
-                direction={{ xs: 'column', sm: 'row' }}
-                spacing={2}
+              <Typography variant="body1" sx={{ mb: 4, opacity: 0.8 }}>
+                Simplifique sua operação com nossa plataforma all-in-one. 
+                CRM, Vendas, Estoque e Financeiro integrados em uma única solução.
+              </Typography>
+              <Button
+                variant="contained"
+                size="large"
+                onClick={() => navigate('/login')}
+                sx={{
+                  bgcolor: 'white',
+                  color: theme.palette.primary.main,
+                  '&:hover': {
+                    bgcolor: alpha(theme.palette.common.white, 0.9),
+                  },
+                  px: 4,
+                  py: 1.5,
+                }}
               >
-                <Button
-                  variant="contained"
-                  color="secondary"
-                  size="large"
-                  onClick={() => navigate('/register')}
-                  sx={{ fontSize: '1.1rem' }}
-                >
-                  Começar Agora
-                </Button>
-                <Button
-                  variant="outlined"
-                  color="inherit"
-                  size="large"
-                  onClick={() => navigate('/login')}
-                  sx={{ fontSize: '1.1rem' }}
-                >
-                  Fazer Login
-                </Button>
-              </Stack>
+                Comece Agora
+              </Button>
             </Grid>
             <Grid item xs={12} md={6}>
               <Box
@@ -125,7 +123,8 @@ export default function LandingPage() {
                   maxWidth: 600,
                   height: 'auto',
                   borderRadius: 2,
-                  boxShadow: 3
+                  boxShadow: '0 20px 40px rgba(0,0,0,0.2)',
+                  transform: 'perspective(1000px) rotateY(-10deg) rotateX(5deg)',
                 }}
               />
             </Grid>
@@ -134,108 +133,126 @@ export default function LandingPage() {
       </Box>
 
       {/* Features Section */}
-      <Container sx={{ py: { xs: 8, md: 12 } }}>
-        <Typography
-          variant="h3"
-          component="h2"
-          align="center"
-          sx={{ mb: 8, fontWeight: 'bold' }}
-        >
-          Recursos Principais
-        </Typography>
-        <Grid container spacing={4}>
+      <Container maxWidth="lg" sx={{ mt: -10, position: 'relative', zIndex: 1 }}>
+        <Grid container spacing={3}>
           {features.map((feature, index) => (
-            <Grid item xs={12} sm={6} md={4} key={index}>
-              <Card
+            <Grid item xs={12} sm={6} md={3} key={index}>
+              <Paper
+                elevation={3}
                 sx={{
+                  p: 3,
                   height: '100%',
                   display: 'flex',
                   flexDirection: 'column',
-                  transition: '0.3s',
+                  alignItems: 'center',
+                  textAlign: 'center',
+                  transition: 'transform 0.2s',
                   '&:hover': {
                     transform: 'translateY(-5px)',
-                    boxShadow: 4
-                  }
+                  },
                 }}
               >
-                <CardContent>
-                  <Box sx={{ color: 'primary.main', mb: 2 }}>
-                    {feature.icon}
-                  </Box>
-                  <Typography
-                    gutterBottom
-                    variant="h5"
-                    component="h3"
-                    sx={{ fontWeight: 'bold' }}
-                  >
-                    {feature.title}
+                <Box sx={{ color: theme.palette.primary.main, mb: 2 }}>
+                  {feature.icon}
+                </Box>
+                <Typography variant="h6" gutterBottom>
+                  {feature.title}
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  {feature.description}
+                </Typography>
+              </Paper>
+            </Grid>
+          ))}
+        </Grid>
+      </Container>
+
+      {/* Modules Section */}
+      <Container maxWidth="lg" sx={{ mt: 15, mb: 15 }}>
+        <Typography variant="h3" align="center" gutterBottom fontWeight="bold">
+          Tudo que você precisa
+        </Typography>
+        <Typography variant="h6" align="center" color="text.secondary" sx={{ mb: 8 }}>
+          Uma plataforma completa para todas as áreas do seu negócio
+        </Typography>
+        
+        <Grid container spacing={4}>
+          {modules.map((module, index) => (
+            <Grid item xs={12} sm={6} key={index}>
+              <Paper
+                elevation={2}
+                sx={{
+                  p: 4,
+                  height: '100%',
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  gap: 3,
+                  transition: 'transform 0.2s',
+                  '&:hover': {
+                    transform: 'translateY(-5px)',
+                  },
+                }}
+              >
+                <Box>{module.icon}</Box>
+                <Box>
+                  <Typography variant="h5" gutterBottom fontWeight="bold">
+                    {module.title}
                   </Typography>
                   <Typography variant="body1" color="text.secondary">
-                    {feature.description}
+                    {module.description}
                   </Typography>
-                </CardContent>
-              </Card>
+                </Box>
+              </Paper>
             </Grid>
           ))}
         </Grid>
       </Container>
 
       {/* CTA Section */}
-      <Box sx={{ bgcolor: 'grey.100', py: { xs: 8, md: 12 } }}>
-        <Container>
-          <Box
-            sx={{
-              textAlign: 'center',
-              maxWidth: 800,
-              mx: 'auto'
-            }}
-          >
-            <Typography
-              variant="h3"
-              component="h2"
-              sx={{ mb: 4, fontWeight: 'bold' }}
-            >
+      <Box
+        sx={{
+          bgcolor: theme.palette.primary.main,
+          color: 'white',
+          py: 10,
+          position: 'relative',
+          '&::before': {
+            content: '""',
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            height: '30%',
+            background: `linear-gradient(to bottom right, white 49%, transparent 51%)`,
+          },
+        }}
+      >
+        <Container maxWidth="md">
+          <Box textAlign="center">
+            <Typography variant="h3" gutterBottom fontWeight="bold">
               Pronto para começar?
             </Typography>
-            <Typography
-              variant="h6"
-              sx={{ mb: 4, color: 'text.secondary' }}
-            >
-              Junte-se a milhares de empresas que já estão usando o NextManager para melhorar sua gestão
+            <Typography variant="h6" sx={{ mb: 4, opacity: 0.9 }}>
+              Transforme seu negócio hoje mesmo com o NextManager
             </Typography>
             <Button
               variant="contained"
-              color="primary"
               size="large"
-              onClick={() => navigate('/register')}
-              sx={{ fontSize: '1.1rem', px: 4, py: 1.5 }}
+              onClick={() => navigate('/login')}
+              sx={{
+                bgcolor: 'white',
+                color: theme.palette.primary.main,
+                '&:hover': {
+                  bgcolor: alpha(theme.palette.common.white, 0.9),
+                },
+                px: 6,
+                py: 2,
+              }}
             >
-              Criar Conta Grátis
+              Começar Gratuitamente
             </Button>
           </Box>
         </Container>
       </Box>
-
-      {/* Footer */}
-      <Box
-        component="footer"
-        sx={{
-          bgcolor: 'background.paper',
-          py: 6,
-          borderTop: 1,
-          borderColor: 'divider'
-        }}
-      >
-        <Container>
-          <Typography
-            variant="body2"
-            color="text.secondary"
-            align="center"
-          >
-            © {new Date().getFullYear()} NextManager. Todos os direitos reservados.
-          </Typography>
-        </Container>
-      </Box>
     </Box>
-  );
+  )
 }
