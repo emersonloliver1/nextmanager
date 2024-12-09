@@ -1,16 +1,17 @@
+/* Reset CSS */
 * {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
 }
 
-body {
-  font-family: 'Roboto', sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  overflow: hidden;
+html, body {
+  height: 100%;
+  width: 100%;
+  overflow-x: hidden;
 }
 
+/* Scrollbar personalizada */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
@@ -18,7 +19,6 @@ body {
 
 ::-webkit-scrollbar-track {
   background: #f1f1f1;
-  border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb {
@@ -30,13 +30,142 @@ body {
   background: #555;
 }
 
-/* Região arrastável da janela */
-.titlebar-drag-region {
-  -webkit-app-region: drag;
-  height: 32px;
+/* Classes utilitárias para responsividade */
+.responsive-container {
   width: 100%;
-  position: fixed;
-  top: 0;
-  left: 0;
-  z-index: 9999;
+  padding-right: 15px;
+  padding-left: 15px;
+  margin-right: auto;
+  margin-left: auto;
+}
+
+@media (min-width: 576px) {
+  .responsive-container {
+    max-width: 540px;
+  }
+}
+
+@media (min-width: 768px) {
+  .responsive-container {
+    max-width: 720px;
+  }
+}
+
+@media (min-width: 992px) {
+  .responsive-container {
+    max-width: 960px;
+  }
+}
+
+@media (min-width: 1200px) {
+  .responsive-container {
+    max-width: 1140px;
+  }
+}
+
+/* Classes para grid responsivo */
+.grid {
+  display: grid;
+  gap: 1rem;
+  padding: 1rem;
+}
+
+@media (min-width: 576px) {
+  .grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 992px) {
+  .grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (min-width: 1200px) {
+  .grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+/* Classes para espaçamento responsivo */
+.p-responsive {
+  padding: 0.5rem;
+}
+
+@media (min-width: 576px) {
+  .p-responsive {
+    padding: 1rem;
+  }
+}
+
+@media (min-width: 992px) {
+  .p-responsive {
+    padding: 1.5rem;
+  }
+}
+
+/* Classes para texto responsivo */
+.text-responsive {
+  font-size: 14px;
+}
+
+@media (min-width: 576px) {
+  .text-responsive {
+    font-size: 16px;
+  }
+}
+
+@media (min-width: 992px) {
+  .text-responsive {
+    font-size: 18px;
+  }
+}
+
+/* Classes para imagens responsivas */
+.img-responsive {
+  max-width: 100%;
+  height: auto;
+}
+
+/* Classes para flexbox responsivo */
+.flex-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+@media (min-width: 768px) {
+  .flex-container {
+    flex-direction: row;
+  }
+}
+
+/* Classes para cards responsivos */
+.card {
+  padding: 1rem;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  background-color: white;
+  height: 100%;
+}
+
+/* Classes para botões responsivos */
+.btn-responsive {
+  padding: 0.5rem 1rem;
+  font-size: 14px;
+}
+
+@media (min-width: 576px) {
+  .btn-responsive {
+    padding: 0.75rem 1.5rem;
+    font-size: 16px;
+  }
+}
+
+/* Classes para tabelas responsivas */
+.table-responsive {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }

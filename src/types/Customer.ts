@@ -7,6 +7,7 @@ export interface Customer {
   email: string;
   phone: string;
   status: 'active' | 'inactive';
+  category: string;
   address: {
     cep: string;
     logradouro: string;

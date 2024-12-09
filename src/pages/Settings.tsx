@@ -1,273 +1,284 @@
-import { useState } from 'react';
-import { useAuthState } from 'react-firebase-hooks/auth';
+import { useState } from 'react'
 import {
   Box,
+  Paper,
   Typography,
   TextField,
   Button,
-  Avatar,
-  Paper,
   Grid,
+  Switch,
+  FormControlLabel,
+  Divider,
   Alert,
-  CircularProgress,
-  IconButton,
-} from '@mui/material';
-import PhotoCamera from '@mui/icons-material/PhotoCamera';
-import { auth, db } from '../config/firebase';
-import { updateProfile } from 'firebase/auth';
-import { doc, setDoc, getDoc } from 'firebase/firestore';
+  Snackbar
+} from '@mui/material'
+import { doc, updateDoc } from 'firebase/firestore'
+import { db } from '../config/firebase'
+
+interface CompanySettings {
+  name: string
+  document: string
+  email: string
+  phone: string
+  address: {
+    street: string
+    number: string
+    complement?: string
+    neighborhood: string
+    city: string
+    state: string
+    zipCode: string
+  }
+  notifications: {
+    email: boolean
+    push: boolean
+  }
+}
+
+const initialSettings: CompanySettings = {
+  name: '',
+  document: '',
+  email: '',
+  phone: '',
+  address: {
+    street: '',
+    number: '',
+    complement: '',
+    neighborhood: '',
+    city: '',
+    state: '',
+    zipCode: ''
+  },
+  notifications: {
+    email: true,
+    push: true
+  }
+}
 
 export default function Settings() {
-  const [user] = useAuthState(auth);
-  const [displayName, setDisplayName] = useState(user?.displayName || '');
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
+  const [settings, setSettings] = useState<CompanySettings>(initialSettings)
+  const [openSnackbar, setOpenSnackbar] = useState(false)
+  const [snackbarMessage, setSnackbarMessage] = useState('')
+  const [snackbarSeverity, setSnackbarSeverity] = useState<'success' | 'error'>('success')
 
-  const validateFile = (file: File) => {
-    // Verificar tamanho (max 500KB para base64)
-    if (file.size > 500 * 1024) {
-      throw new Error('A imagem deve ter no máximo 500KB');
-    }
-
-    // Verificar tipo
-    if (!file.type.startsWith('image/')) {
-      throw new Error('O arquivo deve ser uma imagem');
-    }
-  };
-
-  const convertToBase64 = (file: File): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.readAsDataURL(file);
-      reader.onload = () => resolve(reader.result as string);
-      reader.onerror = error => reject(error);
-    });
-  };
-
-  const resizeImage = (base64Str: string, maxWidth = 100, maxHeight = 100): Promise<string> => {
-    return new Promise((resolve) => {
-      const img = new Image();
-      img.src = base64Str;
-      img.onload = () => {
-        const canvas = document.createElement('canvas');
-        const MAX_WIDTH = maxWidth;
-        const MAX_HEIGHT = maxHeight;
-        let width = img.width;
-        let height = img.height;
-
-        if (width > height) {
-          if (width > MAX_WIDTH) {
-            height *= MAX_WIDTH / width;
-            width = MAX_WIDTH;
-          }
-        } else {
-          if (height > MAX_HEIGHT) {
-            width *= MAX_HEIGHT / height;
-            height = MAX_HEIGHT;
-          }
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target
+    if (name.includes('.')) {
+      const [parent, child] = name.split('.')
+      setSettings(prev => ({
+        ...prev,
+        [parent]: {
+          ...prev[parent as keyof CompanySettings],
+          [child]: value
         }
-
-        canvas.width = width;
-        canvas.height = height;
-
-        const ctx = canvas.getContext('2d');
-        ctx?.drawImage(img, 0, 0, width, height);
-
-        // Converter para JPEG com qualidade reduzida
-        resolve(canvas.toDataURL('image/jpeg', 0.7));
-      };
-    });
-  };
-
-  const handlePhotoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    if (!event.target.files || !event.target.files[0] || !user) return;
-    
-    try {
-      setLoading(true);
-      setError('');
-      setSuccess('');
-      
-      const file = event.target.files[0];
-      validateFile(file);
-      
-      // Converter para base64
-      const base64Image = await convertToBase64(file);
-      
-      // Criar versão reduzida para o Auth
-      const thumbnailImage = await resizeImage(base64Image);
-      
-      // Salvar imagem completa no Firestore
-      const userRef = doc(db, 'users', user.uid);
-      await setDoc(userRef, {
-        photoURL: base64Image,
-        thumbnailURL: thumbnailImage,
-        updatedAt: new Date().toISOString()
-      }, { merge: true });
-      
-      // Atualizar perfil do usuário com a versão reduzida
-      await updateProfile(user, { photoURL: thumbnailImage });
-      
-      setSuccess('Foto atualizada com sucesso!');
-      // Forçar atualização do usuário
-      await user.reload();
-    } catch (err: any) {
-      console.error('Erro no upload:', err);
-      setError(err.message || 'Erro ao atualizar a foto. Tente novamente.');
-    } finally {
-      setLoading(false);
+      }))
+    } else {
+      setSettings(prev => ({
+        ...prev,
+        [name]: value
+      }))
     }
-  };
+  }
 
-  const handleUpdateProfile = async () => {
-    if (!user) return;
-    
-    try {
-      setLoading(true);
-      setError('');
-      setSuccess('');
-      
-      // Atualizar perfil do usuário
-      await updateProfile(user, {
-        displayName: displayName,
-      });
-
-      // Atualizar no Firestore
-      const userRef = doc(db, 'users', user.uid);
-      await setDoc(userRef, {
-        displayName: displayName,
-        updatedAt: new Date().toISOString()
-      }, { merge: true });
-      
-      // Forçar atualização do usuário
-      await user.reload();
-      setSuccess('Perfil atualizado com sucesso!');
-    } catch (err: any) {
-      console.error('Erro na atualização:', err);
-      setError(err.message || 'Erro ao atualizar o perfil. Tente novamente.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Carregar dados do usuário do Firestore
-  const loadUserData = async () => {
-    if (!user) return;
-
-    try {
-      const userRef = doc(db, 'users', user.uid);
-      const userDoc = await getDoc(userRef);
-      
-      if (userDoc.exists()) {
-        const data = userDoc.data();
-        if (data.displayName) {
-          setDisplayName(data.displayName);
-        }
+  const handleNotificationChange = (type: 'email' | 'push') => {
+    setSettings(prev => ({
+      ...prev,
+      notifications: {
+        ...prev.notifications,
+        [type]: !prev.notifications[type]
       }
-    } catch (err) {
-      console.error('Erro ao carregar dados:', err);
-    }
-  };
+    }))
+  }
 
-  // Carregar dados ao montar o componente
-  useState(() => {
-    loadUserData();
-  }, [user]);
+  const handleSave = async () => {
+    try {
+      const settingsRef = doc(db, 'settings', 'company')
+      await updateDoc(settingsRef, settings)
+      setSnackbarMessage('Configurações salvas com sucesso!')
+      setSnackbarSeverity('success')
+      setOpenSnackbar(true)
+    } catch (error) {
+      console.error('Erro ao salvar configurações:', error)
+      setSnackbarMessage('Erro ao salvar configurações. Tente novamente.')
+      setSnackbarSeverity('error')
+      setOpenSnackbar(true)
+    }
+  }
 
   return (
     <Box sx={{ p: 3 }}>
-      <Typography variant="h4" sx={{ mb: 4 }}>
+      <Typography variant="h4" sx={{ mb: 3 }}>
         Configurações
       </Typography>
 
-      <Paper sx={{ p: 3, maxWidth: 600 }}>
+      <Paper sx={{ p: 3 }}>
         <Typography variant="h6" sx={{ mb: 3 }}>
-          Perfil do Usuário
+          Informações da Empresa
         </Typography>
 
-        {error && (
-          <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError('')}>
-            {error}
-          </Alert>
-        )}
-
-        {success && (
-          <Alert severity="success" sx={{ mb: 2 }} onClose={() => setSuccess('')}>
-            {success}
-          </Alert>
-        )}
-
-        <Grid container spacing={3}>
-          <Grid item xs={12} sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-            <Avatar
-              src={user?.photoURL || undefined}
-              sx={{ 
-                width: 100, 
-                height: 100,
-                border: '2px solid',
-                borderColor: 'primary.main'
-              }}
-            />
-            <Box>
-              <input
-                accept="image/*"
-                style={{ display: 'none' }}
-                id="photo-upload"
-                type="file"
-                onChange={handlePhotoUpload}
-                disabled={loading}
-              />
-              <label htmlFor="photo-upload">
-                <IconButton
-                  color="primary"
-                  component="span"
-                  disabled={loading}
-                >
-                  <PhotoCamera />
-                </IconButton>
-              </label>
-              <Typography variant="body2" color="text.secondary">
-                Clique para alterar a foto
-              </Typography>
-              <Typography variant="caption" color="text.secondary" display="block">
-                Tamanho máximo: 500KB
-              </Typography>
-            </Box>
-          </Grid>
-
-          <Grid item xs={12}>
+        <Grid container spacing={2}>
+          <Grid item xs={12} sm={6}>
             <TextField
               fullWidth
-              label="Nome"
-              value={displayName}
-              onChange={(e) => setDisplayName(e.target.value)}
-              disabled={loading}
-              helperText="Este é o nome que será exibido para outros usuários"
+              label="Nome da Empresa"
+              name="name"
+              value={settings.name}
+              onChange={handleInputChange}
             />
           </Grid>
-
-          <Grid item xs={12}>
+          <Grid item xs={12} sm={6}>
             <TextField
               fullWidth
-              label="Email"
-              value={user?.email || ''}
-              disabled
-              helperText="O email não pode ser alterado"
+              label="CNPJ"
+              name="document"
+              value={settings.document}
+              onChange={handleInputChange}
             />
           </Grid>
-
-          <Grid item xs={12}>
-            <Button
-              variant="contained"
-              onClick={handleUpdateProfile}
-              disabled={loading}
-              startIcon={loading ? <CircularProgress size={20} /> : null}
-            >
-              Salvar Alterações
-            </Button>
+          <Grid item xs={12} sm={6}>
+            <TextField
+              fullWidth
+              label="E-mail"
+              name="email"
+              type="email"
+              value={settings.email}
+              onChange={handleInputChange}
+            />
+          </Grid>
+          <Grid item xs={12} sm={6}>
+            <TextField
+              fullWidth
+              label="Telefone"
+              name="phone"
+              value={settings.phone}
+              onChange={handleInputChange}
+            />
           </Grid>
         </Grid>
+
+        <Divider sx={{ my: 3 }} />
+
+        <Typography variant="h6" sx={{ mb: 3 }}>
+          Endereço
+        </Typography>
+
+        <Grid container spacing={2}>
+          <Grid item xs={12} sm={6}>
+            <TextField
+              fullWidth
+              label="CEP"
+              name="address.zipCode"
+              value={settings.address.zipCode}
+              onChange={handleInputChange}
+            />
+          </Grid>
+          <Grid item xs={12} sm={6}>
+            <TextField
+              fullWidth
+              label="Rua"
+              name="address.street"
+              value={settings.address.street}
+              onChange={handleInputChange}
+            />
+          </Grid>
+          <Grid item xs={12} sm={4}>
+            <TextField
+              fullWidth
+              label="Número"
+              name="address.number"
+              value={settings.address.number}
+              onChange={handleInputChange}
+            />
+          </Grid>
+          <Grid item xs={12} sm={8}>
+            <TextField
+              fullWidth
+              label="Complemento"
+              name="address.complement"
+              value={settings.address.complement}
+              onChange={handleInputChange}
+            />
+          </Grid>
+          <Grid item xs={12} sm={4}>
+            <TextField
+              fullWidth
+              label="Bairro"
+              name="address.neighborhood"
+              value={settings.address.neighborhood}
+              onChange={handleInputChange}
+            />
+          </Grid>
+          <Grid item xs={12} sm={4}>
+            <TextField
+              fullWidth
+              label="Cidade"
+              name="address.city"
+              value={settings.address.city}
+              onChange={handleInputChange}
+            />
+          </Grid>
+          <Grid item xs={12} sm={4}>
+            <TextField
+              fullWidth
+              label="Estado"
+              name="address.state"
+              value={settings.address.state}
+              onChange={handleInputChange}
+            />
+          </Grid>
+        </Grid>
+
+        <Divider sx={{ my: 3 }} />
+
+        <Typography variant="h6" sx={{ mb: 3 }}>
+          Notificações
+        </Typography>
+
+        <Grid container spacing={2}>
+          <Grid item xs={12}>
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={settings.notifications.email}
+                  onChange={() => handleNotificationChange('email')}
+                />
+              }
+              label="Receber notificações por e-mail"
+            />
+          </Grid>
+          <Grid item xs={12}>
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={settings.notifications.push}
+                  onChange={() => handleNotificationChange('push')}
+                />
+              }
+              label="Receber notificações push"
+            />
+          </Grid>
+        </Grid>
+
+        <Box sx={{ mt: 3, display: 'flex', justifyContent: 'flex-end' }}>
+          <Button variant="contained" onClick={handleSave}>
+            Salvar Configurações
+          </Button>
+        </Box>
       </Paper>
+
+      <Snackbar
+        open={openSnackbar}
+        autoHideDuration={6000}
+        onClose={() => setOpenSnackbar(false)}
+      >
+        <Alert
+          onClose={() => setOpenSnackbar(false)}
+          severity={snackbarSeverity}
+          sx={{ width: '100%' }}
+        >
+          {snackbarMessage}
+        </Alert>
+      </Snackbar>
     </Box>
-  );
+  )
 } 

@@ -6,6 +6,7 @@ import InventoryIcon from '@mui/icons-material/Inventory'
 import TrendingUpIcon from '@mui/icons-material/TrendingUp'
 import { collection, query, where, getDocs, orderBy, Timestamp } from 'firebase/firestore'
 import { db } from '../config/firebase'
+import { BarChart } from '@mui/x-charts'
 
 interface StatCardProps {
   title: string
@@ -13,6 +14,19 @@ interface StatCardProps {
   icon: React.ReactNode
   color: string
   percentageChange?: string | null
+}
+
+interface SaleItem {
+  productId: string
+  quantity: number
+  salePrice: number
+  costPrice: number
+}
+
+interface Sale {
+  items: SaleItem[]
+  createdAt: Timestamp
+  total: number
 }
 
 function StatCard({ title, value, icon, color, percentageChange }: StatCardProps) {
@@ -81,7 +95,9 @@ export default function Dashboard() {
     revenueChange: '',
     customersChange: '',
     productsChange: null as string | null,
-    profitChange: ''
+    profitChange: '',
+    monthlySales: [] as { month: string; total: number }[],
+    topProducts: [] as { name: string; quantity: number }[]
   })
 
   // Função para calcular a variação percentual
@@ -109,35 +125,88 @@ export default function Dashboard() {
         const firstDayCurrentMonth = new Date(now.getFullYear(), now.getMonth(), 1)
         const firstDayPreviousMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1)
         const lastDayPreviousMonth = new Date(now.getFullYear(), now.getMonth(), 0)
+        const sixMonthsAgo = new Date(now)
+        sixMonthsAgo.setMonth(now.getMonth() - 6)
 
-        // Buscar oportunidades fechadas (vendas)
-        const opportunitiesRef = collection(db, 'opportunities')
+        // Buscar vendas dos últimos 6 meses
+        const salesRef = collection(db, 'sales')
+        const salesQuery = query(
+          salesRef,
+          where('createdAt', '>=', Timestamp.fromDate(sixMonthsAgo)),
+          orderBy('createdAt', 'desc')
+        )
+        const salesSnapshot = await getDocs(salesQuery)
+        const sales = salesSnapshot.docs.map(doc => ({
+          ...doc.data(),
+          id: doc.id
+        })) as Sale[]
+
+        // Calcular vendas e lucro do mês atual
+        const currentMonthSales = sales.filter(sale => 
+          sale.createdAt.toDate() >= firstDayCurrentMonth &&
+          sale.createdAt.toDate() <= now
+        )
+
+        const currentMonthRevenue = currentMonthSales.reduce((total, sale) => total + sale.total, 0)
         
-        // Vendas do mês atual
-        const currentMonthQuery = query(
-          opportunitiesRef,
-          where('stage', '==', 'closed-won'),
-          where('closedAt', '>=', firstDayCurrentMonth),
-          where('closedAt', '<=', now)
-        )
-        const currentMonthSnapshot = await getDocs(currentMonthQuery)
-        const currentMonthRevenue = currentMonthSnapshot.docs.reduce(
-          (total, doc) => total + (doc.data().value || 0), 
-          0
+        // Calcular lucro (valor de venda - valor de custo)
+        const currentMonthProfit = currentMonthSales.reduce((total, sale) => {
+          return total + sale.items.reduce((itemProfit, item) => {
+            return itemProfit + (item.quantity * (item.salePrice - item.costPrice))
+          }, 0)
+        }, 0)
+
+        // Calcular vendas e lucro do mês anterior
+        const previousMonthSales = sales.filter(sale => 
+          sale.createdAt.toDate() >= firstDayPreviousMonth &&
+          sale.createdAt.toDate() <= lastDayPreviousMonth
         )
 
-        // Vendas do mês anterior
-        const previousMonthQuery = query(
-          opportunitiesRef,
-          where('stage', '==', 'closed-won'),
-          where('closedAt', '>=', firstDayPreviousMonth),
-          where('closedAt', '<=', lastDayPreviousMonth)
+        const previousMonthRevenue = previousMonthSales.reduce((total, sale) => total + sale.total, 0)
+        const previousMonthProfit = previousMonthSales.reduce((total, sale) => {
+          return total + sale.items.reduce((itemProfit, item) => {
+            return itemProfit + (item.quantity * (item.salePrice - item.costPrice))
+          }, 0)
+        }, 0)
+
+        // Agrupar vendas por mês
+        const salesByMonth = sales.reduce((acc, sale) => {
+          const date = sale.createdAt.toDate()
+          const monthKey = date.toLocaleDateString('pt-BR', { month: 'short', year: 'numeric' })
+          
+          if (!acc[monthKey]) {
+            acc[monthKey] = { month: monthKey, total: 0 }
+          }
+          acc[monthKey].total += sale.total
+          return acc
+        }, {} as Record<string, { month: string; total: number }>)
+
+        const monthlySales = Object.values(salesByMonth).sort((a, b) => 
+          new Date(a.month).getTime() - new Date(b.month).getTime()
         )
-        const previousMonthSnapshot = await getDocs(previousMonthQuery)
-        const previousMonthRevenue = previousMonthSnapshot.docs.reduce(
-          (total, doc) => total + (doc.data().value || 0), 
-          0
-        )
+
+        // Calcular produtos mais vendidos
+        const productSales = new Map<string, { name: string; quantity: number }>()
+        
+        for (const sale of sales) {
+          for (const item of sale.items) {
+            const productId = item.productId
+            const productRef = collection(db, 'products')
+            const productDoc = await getDocs(query(productRef, where('id', '==', productId)))
+            const productName = productDoc.docs[0]?.data()?.name || 'Produto Desconhecido'
+            
+            if (!productSales.has(productId)) {
+              productSales.set(productId, { name: productName, quantity: 0 })
+            }
+            const current = productSales.get(productId)!
+            current.quantity += item.quantity
+            productSales.set(productId, current)
+          }
+        }
+
+        const topProducts = Array.from(productSales.values())
+          .sort((a, b) => b.quantity - a.quantity)
+          .slice(0, 5)
 
         // Buscar clientes ativos
         const customersRef = collection(db, 'customers')
@@ -145,41 +214,35 @@ export default function Dashboard() {
           customersRef,
           where('status', '==', 'active')
         )
-        console.log('Buscando clientes ativos...')
         const activeCustomersSnapshot = await getDocs(activeCustomersQuery)
-        console.log('Total de clientes ativos:', activeCustomersSnapshot.size)
-        console.log('Clientes ativos:', activeCustomersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })))
         const currentActiveCustomers = activeCustomersSnapshot.size
-
-        // Simplificando a contagem anterior por enquanto
-        const previousActiveCustomers = currentActiveCustomers
 
         // Buscar produtos em estoque
         const productsRef = collection(db, 'products')
         const productsSnapshot = await getDocs(productsRef)
         const currentProductsInStock = productsSnapshot.docs.reduce(
-          (total, doc) => total + (doc.data().stockQuantity || 0),
+          (total, doc) => {
+            const productData = doc.data()
+            return total + (productData.stockQuantity || 0)
+          },
           0
         )
 
-        // Calcular lucro (30% das vendas para exemplo)
-        const currentProfit = currentMonthRevenue * 0.3
-        const previousProfit = previousMonthRevenue * 0.3
-
         // Calcular variações percentuais
         const revenueChange = calculatePercentageChange(currentMonthRevenue, previousMonthRevenue)
-        const customersChange = calculatePercentageChange(currentActiveCustomers, previousActiveCustomers)
-        const profitChange = calculatePercentageChange(currentProfit, previousProfit)
+        const profitChange = calculatePercentageChange(currentMonthProfit, previousMonthProfit)
 
         setDashboardData({
           monthlyRevenue: currentMonthRevenue,
           activeCustomers: currentActiveCustomers,
           productsInStock: currentProductsInStock,
-          totalProfit: currentProfit,
+          totalProfit: currentMonthProfit,
           revenueChange,
-          customersChange,
-          productsChange: null, // Implementar quando tivermos histórico de estoque
-          profitChange
+          customersChange: '0%',
+          productsChange: null,
+          profitChange,
+          monthlySales,
+          topProducts
         })
 
       } catch (error) {
@@ -196,7 +259,7 @@ export default function Dashboard() {
     <Box>
       <Typography 
         variant="h4" 
-        sx={{ 
+        sx={{
           mb: 4,
           fontSize: '1.75rem',
           fontWeight: 600,
@@ -256,11 +319,29 @@ export default function Dashboard() {
             <Typography variant="h6" sx={{ mb: 3 }}>
               Vendas dos Últimos 6 Meses
             </Typography>
-            <Box sx={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <Typography variant="body2" color="text.secondary">
-                Gráfico de vendas será implementado aqui
-              </Typography>
-            </Box>
+            {dashboardData.monthlySales.length > 0 ? (
+              <Box sx={{ flex: 1, width: '100%' }}>
+                <BarChart
+                  dataset={dashboardData.monthlySales}
+                  series={[{
+                    dataKey: 'total',
+                    label: 'Vendas',
+                    valueFormatter: (value) => formatCurrency(value),
+                  }]}
+                  xAxis={[{
+                    dataKey: 'month',
+                    scaleType: 'band',
+                  }]}
+                  height={300}
+                />
+              </Box>
+            ) : (
+              <Box sx={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Typography variant="body2" color="text.secondary">
+                  Nenhuma venda registrada no período
+                </Typography>
+              </Box>
+            )}
           </Paper>
         </Grid>
 
@@ -277,11 +358,37 @@ export default function Dashboard() {
             <Typography variant="h6" sx={{ mb: 3 }}>
               Produtos Mais Vendidos
             </Typography>
-            <Box sx={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <Typography variant="body2" color="text.secondary">
-                Lista de produtos será implementada aqui
-              </Typography>
-            </Box>
+            {dashboardData.topProducts.length > 0 ? (
+              <Box sx={{ flex: 1, overflow: 'auto' }}>
+                {dashboardData.topProducts.map((product, index) => (
+                  <Box
+                    key={product.name}
+                    sx={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      mb: 2,
+                      p: 2,
+                      borderRadius: 1,
+                      bgcolor: `${theme.palette.primary.main}${(5 - index) * 2}0`,
+                    }}
+                  >
+                    <Typography variant="body1" sx={{ color: 'white' }}>
+                      {product.name}
+                    </Typography>
+                    <Typography variant="body2" sx={{ color: 'white' }}>
+                      {product.quantity} unidades
+                    </Typography>
+                  </Box>
+                ))}
+              </Box>
+            ) : (
+              <Box sx={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Typography variant="body2" color="text.secondary">
+                  Nenhum produto vendido no período
+                </Typography>
+              </Box>
+            )}
           </Paper>
         </Grid>
       </Grid>

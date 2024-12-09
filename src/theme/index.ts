@@ -117,6 +117,16 @@ const theme = createTheme({
       styleOverrides: {
         root: {
           textTransform: 'none',
+          padding: {
+            xs: '6px 12px',
+            sm: '8px 16px',
+            md: '8px 20px',
+          },
+          fontSize: {
+            xs: '0.875rem',
+            sm: '0.9rem',
+            md: '1rem',
+          },
         },
       },
     },
@@ -124,6 +134,14 @@ const theme = createTheme({
       defaultProps: {
         variant: 'outlined',
         size: 'small',
+      },
+      styleOverrides: {
+        root: {
+          width: {
+            xs: '100%',
+            sm: 'auto',
+          },
+        },
       },
     },
     MuiPaper: {
@@ -133,6 +151,148 @@ const theme = createTheme({
       styleOverrides: {
         root: {
           backgroundImage: 'none',
+        },
+      },
+    },
+    MuiContainer: {
+      styleOverrides: {
+        root: {
+          paddingLeft: {
+            xs: 8,
+            sm: 16,
+            md: 24,
+          },
+          paddingRight: {
+            xs: 8,
+            sm: 16,
+            md: 24,
+          },
+          maxWidth: {
+            xs: '100%',
+            sm: '540px',
+            md: '720px',
+            lg: '1140px',
+            xl: '1400px',
+          },
+        },
+      },
+    },
+    MuiCard: {
+      styleOverrides: {
+        root: {
+          height: '100%',
+          padding: {
+            xs: '16px',
+            sm: '20px',
+            md: '24px',
+          },
+        },
+      },
+    },
+    MuiTableCell: {
+      styleOverrides: {
+        root: {
+          padding: {
+            xs: '8px',
+            sm: '12px 16px',
+            md: '16px',
+          },
+          fontSize: {
+            xs: '0.8rem',
+            sm: '0.875rem',
+            md: '1rem',
+          },
+        },
+      },
+    },
+    MuiDialog: {
+      styleOverrides: {
+        paper: {
+          margin: {
+            xs: '16px',
+            sm: '32px',
+            md: '48px',
+          },
+          width: {
+            xs: 'calc(100% - 32px)',
+            sm: 'auto',
+          },
+          maxWidth: {
+            xs: '100%',
+            sm: '600px',
+            md: '800px',
+          },
+        },
+      },
+    },
+    MuiListItem: {
+      styleOverrides: {
+        root: {
+          padding: {
+            xs: '8px',
+            sm: '12px',
+            md: '16px',
+          },
+        },
+      },
+    },
+    MuiTypography: {
+      styleOverrides: {
+        h1: {
+          fontSize: {
+            xs: '2rem',
+            sm: '2.25rem',
+            md: '2.5rem',
+          },
+        },
+        h2: {
+          fontSize: {
+            xs: '1.75rem',
+            sm: '1.875rem',
+            md: '2rem',
+          },
+        },
+        h3: {
+          fontSize: {
+            xs: '1.5rem',
+            sm: '1.625rem',
+            md: '1.75rem',
+          },
+        },
+        h4: {
+          fontSize: {
+            xs: '1.25rem',
+            sm: '1.375rem',
+            md: '1.5rem',
+          },
+        },
+        h5: {
+          fontSize: {
+            xs: '1.1rem',
+            sm: '1.175rem',
+            md: '1.25rem',
+          },
+        },
+        h6: {
+          fontSize: {
+            xs: '1rem',
+            sm: '1.05rem',
+            md: '1.1rem',
+          },
+        },
+        body1: {
+          fontSize: {
+            xs: '0.875rem',
+            sm: '0.925rem',
+            md: '1rem',
+          },
+        },
+        body2: {
+          fontSize: {
+            xs: '0.8rem',
+            sm: '0.85rem',
+            md: '0.875rem',
+          },
         },
       },
     },
