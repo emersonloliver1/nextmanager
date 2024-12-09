@@ -73,6 +73,24 @@ service cloud.firestore {
       allow write: if isAuthenticated();
     }
 
+    // Regra para a coleção projects
+    match /projects/{projectId} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated();
+    }
+
+    // Regra para a coleção tasks
+    match /tasks/{taskId} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated();
+    }
+
+    // Regra para a coleção events
+    match /events/{eventId} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated();
+    }
+
     // Regra padrão: negar tudo que não foi explicitamente permitido
     match /{document=**} {
       allow read, write: if false;

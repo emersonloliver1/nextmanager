@@ -34,7 +34,10 @@ import {
   ShowChart as ShowChartIcon,
   Receipt as ReceiptIcon,
   ExpandLess,
-  ExpandMore
+  ExpandMore,
+  Assignment as ProjectsIcon,
+  Task as TasksIcon,
+  Event as CalendarIcon
 } from '@mui/icons-material'
 import { auth } from '../config/firebase'
 
@@ -116,9 +119,9 @@ const menuItems: MenuItem[] = [
     text: 'Gestão',
     icon: <GroupWorkIcon />,
     children: [
-      { text: 'Projetos', icon: <GroupWorkIcon />, path: '/dashboard/projects' },
-      { text: 'Tarefas', icon: <AssignmentIcon />, path: '/dashboard/tasks' },
-      { text: 'Agenda', icon: <CalendarMonthIcon />, path: '/dashboard/calendar' },
+      { text: 'Projetos', icon: <ProjectsIcon />, path: '/dashboard/gestao/projetos' },
+      { text: 'Tarefas', icon: <TasksIcon />, path: '/dashboard/gestao/tarefas' },
+      { text: 'Agenda', icon: <CalendarIcon />, path: '/dashboard/gestao/agenda' },
     ]
   },
   {

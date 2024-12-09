@@ -23,6 +23,7 @@ import Settings from './pages/Settings'
 import { Overview as FinancialOverview, AccountsPayable, AccountsReceivable, CashFlow } from './pages/financial'
 import ComingSoon from './components/ComingSoon'
 import theme from './theme'
+import { Projects, Tasks, Calendar } from './pages/management'
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   const [user, loading] = useAuthState(auth)
@@ -76,9 +77,12 @@ function App() {
               </Route>
 
               {/* Gestão */}
-              <Route path="projects" element={<ComingSoon module="Projetos" />} />
-              <Route path="tasks" element={<ComingSoon module="Tarefas" />} />
-              <Route path="calendar" element={<ComingSoon module="Agenda" />} />
+              <Route path="gestao">
+                <Route index element={<Navigate to="projetos" replace />} />
+                <Route path="projetos" element={<Projects />} />
+                <Route path="tarefas" element={<Tasks />} />
+                <Route path="agenda" element={<Calendar />} />
+              </Route>
 
               {/* Relatórios */}
               <Route path="reports" element={<ComingSoon module="Relatórios" />} />
