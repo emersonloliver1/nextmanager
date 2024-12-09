@@ -248,12 +248,16 @@ export default function Customers() {
         const code = `CLI${String(timestamp).slice(-5)}`
         console.log('Código gerado:', code)
         
-        const docRef = await addDoc(customersRef, {
+        const newCustomerData = {
           ...customerData,
           code,
-          createdAt: new Date(),
-          updatedAt: new Date()
-        })
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp()
+        }
+        
+        console.log('Dados do novo cliente:', newCustomerData)
+        
+        const docRef = await addDoc(customersRef, newCustomerData)
         console.log('Novo cliente criado com sucesso:', docRef.id)
         setFeedback({
           open: true,

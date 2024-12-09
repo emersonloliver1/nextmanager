@@ -15,27 +15,33 @@ import {
   Collapse,
   Tooltip,
 } from '@mui/material'
-import DashboardIcon from '@mui/icons-material/Dashboard'
-import PeopleIcon from '@mui/icons-material/People'
-import InventoryIcon from '@mui/icons-material/Inventory'
-import PointOfSaleIcon from '@mui/icons-material/PointOfSale'
-import BarChartIcon from '@mui/icons-material/BarChart'
-import SettingsIcon from '@mui/icons-material/Settings'
-import LogoutIcon from '@mui/icons-material/Logout'
-import MenuIcon from '@mui/icons-material/Menu'
-import WorkIcon from '@mui/icons-material/Work'
-import LocalShippingIcon from '@mui/icons-material/LocalShipping'
-import AccountBalanceIcon from '@mui/icons-material/AccountBalance'
-import AssignmentIcon from '@mui/icons-material/Assignment'
-import CalendarMonthIcon from '@mui/icons-material/CalendarMonth'
-import SupportAgentIcon from '@mui/icons-material/SupportAgent'
-import CampaignIcon from '@mui/icons-material/Campaign'
-import DescriptionIcon from '@mui/icons-material/Description'
-import StorageIcon from '@mui/icons-material/Storage'
-import GroupWorkIcon from '@mui/icons-material/GroupWork'
-import TimelineIcon from '@mui/icons-material/Timeline'
-import ExpandLess from '@mui/icons-material/ExpandLess'
-import ExpandMore from '@mui/icons-material/ExpandMore'
+import {
+  Dashboard as DashboardIcon,
+  People as PeopleIcon,
+  Inventory as InventoryIcon,
+  PointOfSale as PointOfSaleIcon,
+  BarChart as BarChartIcon,
+  Settings as SettingsIcon,
+  Logout as LogoutIcon,
+  Menu as MenuIcon,
+  Work as WorkIcon,
+  LocalShipping as LocalShippingIcon,
+  AccountBalance as AccountBalanceIcon,
+  Assignment as AssignmentIcon,
+  CalendarMonth as CalendarMonthIcon,
+  SupportAgent as SupportAgentIcon,
+  Campaign as CampaignIcon,
+  Description as DescriptionIcon,
+  Storage as StorageIcon,
+  GroupWork as GroupWorkIcon,
+  Timeline as TimelineIcon,
+  TrendingUp as TrendingUpIcon,
+  TrendingDown as TrendingDownIcon,
+  ShowChart as ShowChartIcon,
+  Receipt as ReceiptIcon,
+  ExpandLess,
+  ExpandMore
+} from '@mui/icons-material'
 import { signOut } from 'firebase/auth'
 import { auth } from '../config/firebase'
 
@@ -58,7 +64,7 @@ const menuItems: MenuItem[] = [
     text: 'CRM',
     icon: <PeopleIcon />,
     children: [
-      { text: 'Clientes', icon: <PeopleIcon />, path: '/dashboard/customers' },
+      { text: 'Clientes', icon: <PeopleIcon />, path: '/dashboard/clientes' },
       { text: 'Oportunidades', icon: <WorkIcon />, path: '/dashboard/opportunities' },
       { text: 'Campanhas', icon: <CampaignIcon />, path: '/dashboard/campaigns' },
       { text: 'Atendimento', icon: <SupportAgentIcon />, path: '/dashboard/support' },
@@ -77,19 +83,35 @@ const menuItems: MenuItem[] = [
     text: 'Produtos & Estoque',
     icon: <InventoryIcon />,
     children: [
-      { text: 'Produtos', icon: <InventoryIcon />, path: '/dashboard/products' },
-      { text: 'Estoque', icon: <StorageIcon />, path: '/dashboard/inventory' },
-      { text: 'Fornecedores', icon: <LocalShippingIcon />, path: '/dashboard/suppliers' },
+      { text: 'Produtos', icon: <InventoryIcon />, path: '/dashboard/produtos' },
+      { text: 'Estoque', icon: <StorageIcon />, path: '/dashboard/estoque' },
+      { text: 'Fornecedores', icon: <LocalShippingIcon />, path: '/dashboard/fornecedores' },
     ]
   },
   {
     text: 'Financeiro',
     icon: <AccountBalanceIcon />,
     children: [
-      { text: 'Visão Geral', icon: <AccountBalanceIcon />, path: '/dashboard/financial' },
-      { text: 'Contas a Pagar', icon: <DescriptionIcon />, path: '/dashboard/payables' },
-      { text: 'Contas a Receber', icon: <DescriptionIcon />, path: '/dashboard/receivables' },
-      { text: 'Fluxo de Caixa', icon: <TimelineIcon />, path: '/dashboard/cash-flow' },
+      {
+        icon: <ReceiptIcon />,
+        text: 'Visão Geral',
+        path: '/dashboard/financeiro/visao-geral'
+      },
+      {
+        icon: <TrendingDownIcon />,
+        text: 'Contas a Pagar',
+        path: '/dashboard/financeiro/contas-pagar'
+      },
+      {
+        icon: <TrendingUpIcon />,
+        text: 'Contas a Receber',
+        path: '/dashboard/financeiro/contas-receber'
+      },
+      {
+        icon: <ShowChartIcon />,
+        text: 'Fluxo de Caixa',
+        path: '/dashboard/financeiro/fluxo-caixa'
+      }
     ]
   },
   {
@@ -386,9 +408,14 @@ export default function Layout() {
           width: { sm: `calc(100% - ${drawerWidth}px)` },
           ml: { sm: `${drawerWidth}px` },
           bgcolor: 'background.default',
+          minHeight: '100vh',
+          display: 'flex',
+          flexDirection: 'column'
         }}
       >
-        <Outlet />
+        <Box sx={{ flex: 1, width: '100%', maxWidth: 1200, mx: 'auto' }}>
+          <Outlet />
+        </Box>
       </Box>
     </Box>
   )

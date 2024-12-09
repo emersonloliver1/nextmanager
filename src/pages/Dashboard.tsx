@@ -78,10 +78,10 @@ export default function Dashboard() {
     activeCustomers: 0,
     productsInStock: 0,
     totalProfit: 0,
-    revenueChange: null,
-    customersChange: null,
-    productsChange: null,
-    profitChange: null
+    revenueChange: '',
+    customersChange: '',
+    productsChange: null as string | null,
+    profitChange: ''
   })
 
   // Função para calcular a variação percentual
@@ -145,17 +145,14 @@ export default function Dashboard() {
           customersRef,
           where('status', '==', 'active')
         )
+        console.log('Buscando clientes ativos...')
         const activeCustomersSnapshot = await getDocs(activeCustomersQuery)
+        console.log('Total de clientes ativos:', activeCustomersSnapshot.size)
+        console.log('Clientes ativos:', activeCustomersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })))
         const currentActiveCustomers = activeCustomersSnapshot.size
 
-        // Clientes ativos do mês anterior
-        const previousActiveCustomersQuery = query(
-          customersRef,
-          where('status', '==', 'active'),
-          where('createdAt', '<=', lastDayPreviousMonth)
-        )
-        const previousActiveCustomersSnapshot = await getDocs(previousActiveCustomersQuery)
-        const previousActiveCustomers = previousActiveCustomersSnapshot.size
+        // Simplificando a contagem anterior por enquanto
+        const previousActiveCustomers = currentActiveCustomers
 
         // Buscar produtos em estoque
         const productsRef = collection(db, 'products')

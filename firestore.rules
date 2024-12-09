@@ -49,6 +49,30 @@ service cloud.firestore {
       allow write: if isAuthenticated();
     }
 
+    // Regra para a coleção orders (pedidos)
+    match /orders/{orderId} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated();
+    }
+
+    // Regra para a coleção sales (vendas)
+    match /sales/{saleId} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated();
+    }
+
+    // Regra para a coleção campaigns (campanhas)
+    match /campaigns/{campaignId} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated();
+    }
+
+    // Regra para a coleção financial_transactions (transações financeiras)
+    match /financial_transactions/{transactionId} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated();
+    }
+
     // Regra padrão: negar tudo que não foi explicitamente permitido
     match /{document=**} {
       allow read, write: if false;
