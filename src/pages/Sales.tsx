@@ -83,8 +83,8 @@ interface Order {
   paymentMethod: 'credit' | 'debit' | 'cash' | 'pix' | 'transfer'
   paymentStatus: 'pending' | 'paid' | 'refunded'
   notes?: string
-  createdAt: Date
-  updatedAt: Date
+  createdAt: string
+  updatedAt: string
   userId: string
 }
 

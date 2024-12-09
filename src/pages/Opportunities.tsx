@@ -91,9 +91,9 @@ export default function Opportunities() {
       const opportunitiesList = opportunitiesSnapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data(),
-        expectedClosingDate: doc.data().expectedClosingDate?.toDate(),
-        createdAt: doc.data().createdAt?.toDate(),
-        updatedAt: doc.data().updatedAt?.toDate()
+        expectedClosingDate: doc.data().expectedClosingDate?.toDate() || null,
+        createdAt: doc.data().createdAt?.toDate() || new Date(),
+        updatedAt: doc.data().updatedAt?.toDate() || new Date()
       })) as Opportunity[]
       setOpportunities(opportunitiesList)
     } catch (error) {

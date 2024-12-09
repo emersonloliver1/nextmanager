@@ -29,6 +29,9 @@ import {
 } from '@mui/icons-material';
 import { collection, query, getDocs, addDoc, updateDoc, deleteDoc, doc } from 'firebase/firestore';
 import { db } from '../../config/firebase';
+import { useAuthState } from 'react-firebase-hooks/auth';
+import { auth } from '../../config/firebase';
+import { useNavigate } from 'react-router-dom';
 
 interface Task {
   id?: string;
@@ -43,15 +46,32 @@ interface Task {
 }
 
 export default function Tasks() {
+  const [user, authLoading] = useAuthState(auth);
+  const navigate = useNavigate();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [openDialog, setOpenDialog] = useState(false);
   const [currentTask, setCurrentTask] = useState<Task | null>(null);
 
+  // Verificar autenticação
   useEffect(() => {
-    loadTasks();
-  }, []);
+    if (!authLoading && !user) {
+      navigate('/login');
+    }
+  }, [user, authLoading, navigate]);
+
+  useEffect(() => {
+    if (user) {
+      loadTasks();
+    }
+  }, [user]);
 
   const loadTasks = async () => {
+    if (!user) {
+      console.error('Usuário não autenticado');
+      navigate('/login');
+      return;
+    }
+
     try {
       const tasksRef = collection(db, 'tasks');
       const q = query(tasksRef);

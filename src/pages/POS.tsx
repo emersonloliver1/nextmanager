@@ -81,7 +81,7 @@ interface Sale {
   paymentMethod: 'credit' | 'debit' | 'cash' | 'pix' | 'transfer'
   paymentStatus: 'pending' | 'paid' | 'refunded'
   notes?: string
-  createdAt: Date
+  createdAt: string
   userId: string
 }
 
@@ -247,7 +247,7 @@ export default function POS() {
         paymentMethod: paymentMethod,
         paymentStatus: 'paid',
         notes: notes,
-        createdAt: new Date(),
+        createdAt: new Date().toISOString(),
         userId: user!.uid,
       }
 

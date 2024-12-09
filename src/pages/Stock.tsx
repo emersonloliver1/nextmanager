@@ -55,7 +55,7 @@ function TabPanel(props: TabPanelProps) {
   );
 }
 
-export default function Inventory() {
+export default function Stock() {
   const [user] = useAuthState(auth);
   const [tabValue, setTabValue] = useState(0);
   const [products, setProducts] = useState<Product[]>([]);

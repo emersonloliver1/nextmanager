@@ -37,7 +37,8 @@ import {
   ExpandMore,
   Assignment as ProjectsIcon,
   Task as TasksIcon,
-  Event as CalendarIcon
+  Event as CalendarIcon,
+  Info as InfoIcon,
 } from '@mui/icons-material'
 import { auth } from '../config/firebase'
 
@@ -62,31 +63,36 @@ const menuItems: MenuItem[] = [
     path: '/dashboard' 
   },
   {
-    text: 'CRM',
-    icon: <PeopleIcon />,
-    children: [
-      { text: 'Clientes', icon: <PeopleIcon />, path: '/dashboard/clientes' },
-      { text: 'Oportunidades', icon: <WorkIcon />, path: '/dashboard/opportunities' },
-      { text: 'Campanhas', icon: <CampaignIcon />, path: '/dashboard/campaigns' },
-      { text: 'Atendimento', icon: <SupportAgentIcon />, path: '/dashboard/support' },
-    ]
-  },
-  {
     text: 'Vendas',
     icon: <PointOfSaleIcon />,
     children: [
-      { text: 'Pedidos', icon: <PointOfSaleIcon />, path: '/dashboard/sales' },
+      { text: 'Histórico', icon: <PointOfSaleIcon />, path: '/dashboard/sales' },
       { text: 'PDV', icon: <PointOfSaleIcon />, path: '/dashboard/pos' },
       { text: 'Orçamentos', icon: <DescriptionIcon />, path: '/dashboard/quotes' },
+      { text: 'Oportunidades', icon: <TrendingUpIcon />, path: '/dashboard/opportunities' },
     ]
   },
   {
-    text: 'Produtos & Estoque',
+    text: 'Produtos',
     icon: <InventoryIcon />,
     children: [
-      { text: 'Produtos', icon: <InventoryIcon />, path: '/dashboard/produtos' },
-      { text: 'Estoque', icon: <StorageIcon />, path: '/dashboard/estoque' },
+      { text: 'Catálogo', icon: <StorageIcon />, path: '/dashboard/produtos' },
+      { text: 'Estoque', icon: <InventoryIcon />, path: '/dashboard/estoque' },
       { text: 'Fornecedores', icon: <LocalShippingIcon />, path: '/dashboard/fornecedores' },
+    ]
+  },
+  {
+    text: 'Clientes',
+    icon: <PeopleIcon />,
+    path: '/dashboard/clientes'
+  },
+  {
+    text: 'Gestão',
+    icon: <GroupWorkIcon />,
+    children: [
+      { text: 'Projetos', icon: <ProjectsIcon />, path: '/dashboard/gestao/projetos' },
+      { text: 'Tarefas', icon: <TasksIcon />, path: '/dashboard/gestao/tarefas' },
+      { text: 'Calendário', icon: <CalendarIcon />, path: '/dashboard/gestao/calendario' },
     ]
   },
   {
@@ -96,41 +102,29 @@ const menuItems: MenuItem[] = [
       {
         icon: <ReceiptIcon />,
         text: 'Visão Geral',
-        path: '/dashboard/financeiro/visao-geral'
+        path: '/dashboard/financeiro'
       },
       {
         icon: <TrendingDownIcon />,
         text: 'Contas a Pagar',
-        path: '/dashboard/financeiro/contas-pagar'
+        path: '/dashboard/financeiro/contas-a-pagar'
       },
       {
         icon: <TrendingUpIcon />,
         text: 'Contas a Receber',
-        path: '/dashboard/financeiro/contas-receber'
+        path: '/dashboard/financeiro/contas-a-receber'
       },
       {
         icon: <ShowChartIcon />,
         text: 'Fluxo de Caixa',
-        path: '/dashboard/financeiro/fluxo-caixa'
+        path: '/dashboard/financeiro/fluxo-de-caixa'
       }
     ]
   },
   {
-    text: 'Gestão',
-    icon: <GroupWorkIcon />,
-    children: [
-      { text: 'Projetos', icon: <ProjectsIcon />, path: '/dashboard/gestao/projetos' },
-      { text: 'Tarefas', icon: <TasksIcon />, path: '/dashboard/gestao/tarefas' },
-      { text: 'Agenda', icon: <CalendarIcon />, path: '/dashboard/gestao/agenda' },
-    ]
-  },
-  {
-    text: 'Relatórios',
-    icon: <BarChartIcon />,
-    children: [
-      { text: 'Relatórios', icon: <BarChartIcon />, path: '/dashboard/reports' },
-      { text: 'Analytics', icon: <TimelineIcon />, path: '/dashboard/analytics' },
-    ]
+    text: 'Manual do Usuário',
+    icon: <InfoIcon />,
+    path: '/dashboard/about/manual'
   }
 ]
 
@@ -214,7 +208,7 @@ export default function Sidebar({ drawerWidth, mobileOpen, onDrawerToggle, varia
           <Collapse in={isOpen} timeout="auto" unmountOnExit>
             <List component="div" disablePadding>
               {item.children?.map(child => (
-                <ListItemButton
+                <ListItemButton 
                   key={child.text}
                   onClick={() => handleClick(child)}
                   selected={child.path === location.pathname}

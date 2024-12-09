@@ -15,7 +15,7 @@ import {
 import { doc, updateDoc } from 'firebase/firestore'
 import { db } from '../config/firebase'
 
-interface CompanySettings {
+interface CompanySettings extends Record<string, any> {
   name: string
   document: string
   email: string
@@ -29,9 +29,11 @@ interface CompanySettings {
     state: string
     zipCode: string
   }
-  notifications: {
-    email: boolean
-    push: boolean
+  logo?: string
+  theme: {
+    mode: 'light' | 'dark'
+    primaryColor: string
+    secondaryColor: string
   }
 }
 
@@ -90,18 +92,28 @@ export default function Settings() {
     }))
   }
 
-  const handleSave = async () => {
+  const handleSave = async (settings: CompanySettings) => {
     try {
+      setLoading(true)
       const settingsRef = doc(db, 'settings', 'company')
-      await updateDoc(settingsRef, settings)
-      setSnackbarMessage('Configurações salvas com sucesso!')
-      setSnackbarSeverity('success')
-      setOpenSnackbar(true)
+      await updateDoc(settingsRef, {
+        ...settings,
+        updatedAt: new Date().toISOString()
+      })
+      setFeedback({
+        open: true,
+        message: 'Configurações salvas com sucesso',
+        type: 'success'
+      })
     } catch (error) {
       console.error('Erro ao salvar configurações:', error)
-      setSnackbarMessage('Erro ao salvar configurações. Tente novamente.')
-      setSnackbarSeverity('error')
-      setOpenSnackbar(true)
+      setFeedback({
+        open: true,
+        message: 'Erro ao salvar configurações',
+        type: 'error'
+      })
+    } finally {
+      setLoading(false)
     }
   }
 

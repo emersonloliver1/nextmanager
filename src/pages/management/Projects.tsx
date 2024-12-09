@@ -16,6 +16,9 @@ import {
 import { Add as AddIcon, Edit as EditIcon, Delete as DeleteIcon } from '@mui/icons-material';
 import { collection, query, getDocs, addDoc, updateDoc, deleteDoc, doc } from 'firebase/firestore';
 import { db } from '../../config/firebase';
+import { useAuthState } from 'react-firebase-hooks/auth';
+import { auth } from '../../config/firebase';
+import { useNavigate } from 'react-router-dom';
 
 interface Project {
   id?: string;
@@ -29,15 +32,31 @@ interface Project {
 }
 
 export default function Projects() {
+  const [user, authLoading] = useAuthState(auth);
+  const navigate = useNavigate();
   const [projects, setProjects] = useState<Project[]>([]);
   const [openDialog, setOpenDialog] = useState(false);
   const [currentProject, setCurrentProject] = useState<Project | null>(null);
 
   useEffect(() => {
-    loadProjects();
-  }, []);
+    if (!authLoading && !user) {
+      navigate('/login');
+    }
+  }, [user, authLoading, navigate]);
+
+  useEffect(() => {
+    if (user) {
+      loadProjects();
+    }
+  }, [user]);
 
   const loadProjects = async () => {
+    if (!user) {
+      console.error('Usuário não autenticado');
+      navigate('/login');
+      return;
+    }
+
     try {
       const projectsRef = collection(db, 'projects');
       const q = query(projectsRef);

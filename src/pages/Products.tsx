@@ -37,6 +37,23 @@ import { collection, addDoc, updateDoc, deleteDoc, doc, getDocs, query, where, o
 import { db } from '../config/firebase';
 import { Product, ProductCategory, Supplier } from '../types/product';
 
+interface Product {
+  id?: string
+  name: string
+  description: string
+  sku: string
+  price: number
+  cost: number
+  stock: number
+  minStock: number
+  maxStock: number
+  category: string
+  supplier?: string
+  status: 'active' | 'inactive'
+  createdAt: string
+  updatedAt: string
+}
+
 export default function Products() {
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<ProductCategory[]>([]);
@@ -131,27 +148,23 @@ export default function Products() {
   const handleSubmit = async () => {
     try {
       setLoading(true);
-      setError('');
-      
       const productData = {
         ...formData,
-        updatedAt: Timestamp.now()
+        createdAt: formData.createdAt || new Date().toISOString(),
+        updatedAt: new Date().toISOString()
       };
 
-      if (selectedProduct) {
-        const productRef = doc(db, 'products', selectedProduct.id);
-        await updateDoc(productRef, productData);
-        setSuccess('Produto atualizado com sucesso!');
+      if (selectedProduct?.id) {
+        await updateDoc(doc(db, 'products', selectedProduct.id), productData);
       } else {
-        productData.createdAt = Timestamp.now();
         await addDoc(collection(db, 'products'), productData);
-        setSuccess('Produto adicionado com sucesso!');
       }
 
+      await loadProducts();
       handleCloseDialog();
-      loadProducts();
-    } catch (err) {
-      console.error('Erro ao salvar produto:', err);
+      setSuccess('Produto adicionado com sucesso!');
+    } catch (error) {
+      console.error('Erro ao salvar produto:', error);
       setError('Erro ao salvar produto. Tente novamente.');
     } finally {
       setLoading(false);
@@ -165,8 +178,8 @@ export default function Products() {
 
       const categoryData = {
         ...newCategory,
-        createdAt: Timestamp.now(),
-        updatedAt: Timestamp.now()
+        createdAt: Timestamp.now().toDate().toISOString(),
+        updatedAt: Timestamp.now().toDate().toISOString()
       };
 
       await addDoc(collection(db, 'categories'), categoryData);

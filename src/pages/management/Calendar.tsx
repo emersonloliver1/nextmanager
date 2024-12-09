@@ -31,6 +31,8 @@ interface Event {
   type: 'reuniao' | 'compromisso' | 'tarefa' | 'outro';
   participants?: string[];
   location?: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export default function Calendar() {
@@ -60,10 +62,16 @@ export default function Calendar() {
 
   const handleSaveEvent = async (event: Event) => {
     try {
+      const eventData = {
+        ...event,
+        createdAt: event.createdAt || new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
+
       if (event.id) {
-        await updateDoc(doc(db, 'events', event.id), event);
+        await updateDoc(doc(db, 'events', event.id), eventData);
       } else {
-        await addDoc(collection(db, 'events'), event);
+        await addDoc(collection(db, 'events'), eventData);
       }
       loadEvents();
       setOpenDialog(false);
@@ -133,44 +141,20 @@ export default function Calendar() {
                   sx={{
                     p: 2,
                     mb: 2,
-                    borderLeft: 4,
-                    borderColor: getEventTypeColor(event.type)
+                    borderLeft: 6,
+                    borderColor: getEventTypeColor(event.type),
                   }}
                 >
-                  <Box display="flex" justifyContent="space-between" alignItems="flex-start">
-                    <Box>
-                      <Typography variant="h6">{event.title}</Typography>
-                      <Typography variant="body2" color="text.secondary">
-                        {event.description}
-                      </Typography>
-                      <Typography variant="body2" mt={1}>
-                        {event.startTime} - {event.endTime}
-                      </Typography>
-                      {event.location && (
-                        <Typography variant="body2" color="text.secondary">
-                          Local: {event.location}
-                        </Typography>
-                      )}
-                    </Box>
-                    <Box>
-                      <Button
-                        size="small"
-                        onClick={() => {
-                          setCurrentEvent(event);
-                          setOpenDialog(true);
-                        }}
-                      >
-                        Editar
-                      </Button>
-                      <Button
-                        size="small"
-                        color="error"
-                        onClick={() => event.id && handleDeleteEvent(event.id)}
-                      >
-                        Excluir
-                      </Button>
-                    </Box>
-                  </Box>
+                  <Typography variant="h6">{event.title}</Typography>
+                  <Typography color="textSecondary" gutterBottom>
+                    {event.startTime} - {event.endTime}
+                  </Typography>
+                  <Typography>{event.description}</Typography>
+                  {event.location && (
+                    <Typography color="textSecondary" sx={{ mt: 1 }}>
+                      Local: {event.location}
+                    </Typography>
+                  )}
                 </Paper>
               ))}
             </Box>
@@ -199,7 +183,9 @@ export default function Calendar() {
               fullWidth
               label="Título"
               margin="normal"
-              defaultValue={currentEvent?.title}
+              value={currentEvent?.title || ''}
+              onChange={(e) => setCurrentEvent(prev => ({ ...prev!, title: e.target.value }))}
+              required
             />
             <TextField
               fullWidth
@@ -207,14 +193,18 @@ export default function Calendar() {
               margin="normal"
               multiline
               rows={3}
-              defaultValue={currentEvent?.description}
+              value={currentEvent?.description || ''}
+              onChange={(e) => setCurrentEvent(prev => ({ ...prev!, description: e.target.value }))}
+              required
             />
             <TextField
               fullWidth
               label="Data"
               type="date"
               margin="normal"
-              defaultValue={currentEvent?.date}
+              value={currentEvent?.date || new Date().toISOString().split('T')[0]}
+              onChange={(e) => setCurrentEvent(prev => ({ ...prev!, date: e.target.value }))}
+              required
               InputLabelProps={{
                 shrink: true,
               }}
@@ -226,7 +216,9 @@ export default function Calendar() {
                   label="Hora Início"
                   type="time"
                   margin="normal"
-                  defaultValue={currentEvent?.startTime}
+                  value={currentEvent?.startTime || ''}
+                  onChange={(e) => setCurrentEvent(prev => ({ ...prev!, startTime: e.target.value }))}
+                  required
                   InputLabelProps={{
                     shrink: true,
                   }}
@@ -238,17 +230,20 @@ export default function Calendar() {
                   label="Hora Fim"
                   type="time"
                   margin="normal"
-                  defaultValue={currentEvent?.endTime}
+                  value={currentEvent?.endTime || ''}
+                  onChange={(e) => setCurrentEvent(prev => ({ ...prev!, endTime: e.target.value }))}
+                  required
                   InputLabelProps={{
                     shrink: true,
                   }}
                 />
               </Grid>
             </Grid>
-            <FormControl fullWidth margin="normal">
+            <FormControl fullWidth margin="normal" required>
               <InputLabel>Tipo</InputLabel>
               <Select
-                defaultValue={currentEvent?.type || 'outro'}
+                value={currentEvent?.type || 'outro'}
+                onChange={(e) => setCurrentEvent(prev => ({ ...prev!, type: e.target.value as Event['type'] }))}
                 label="Tipo"
               >
                 <MenuItem value="reuniao">Reunião</MenuItem>
@@ -261,13 +256,24 @@ export default function Calendar() {
               fullWidth
               label="Local"
               margin="normal"
-              defaultValue={currentEvent?.location}
+              value={currentEvent?.location || ''}
+              onChange={(e) => setCurrentEvent(prev => ({ ...prev!, location: e.target.value }))}
             />
           </Box>
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setOpenDialog(false)}>Cancelar</Button>
-          <Button variant="contained" onClick={() => handleSaveEvent(currentEvent || {} as Event)}>
+          <Button 
+            variant="contained" 
+            onClick={() => handleSaveEvent(currentEvent || {
+              title: '',
+              description: '',
+              date: new Date().toISOString().split('T')[0],
+              startTime: '',
+              endTime: '',
+              type: 'outro'
+            } as Event)}
+          >
             Salvar
           </Button>
         </DialogActions>

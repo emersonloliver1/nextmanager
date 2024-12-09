@@ -70,8 +70,8 @@ interface Customer {
     complemento?: string
     numero: string
   }
-  createdAt: Date
-  updatedAt: Date
+  createdAt: string
+  updatedAt: string
 }
 
 const TextMaskCustom = IMaskInput

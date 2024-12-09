@@ -14,6 +14,6 @@ export interface Supplier {
     state: string;
     zipCode: string;
   };
-  createdAt?: Date;
-  updatedAt?: Date;
+  createdAt?: string;
+  updatedAt?: string;
 } 

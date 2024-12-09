@@ -17,6 +17,6 @@ export interface Customer {
     cidade: string;
     uf: string;
   };
-  createdAt?: Date;
-  updatedAt?: Date;
+  createdAt?: string;
+  updatedAt?: string;
 } 

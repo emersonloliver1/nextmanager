@@ -77,8 +77,8 @@ interface TopProduct {
 }
 
 interface MonthlySale {
-  month: string
-  total: number
+  month: string;
+  total: number;
 }
 
 interface DashboardData {
@@ -463,7 +463,7 @@ export default function Dashboard() {
             {dashboardData.monthlySales.length > 0 ? (
               <Box sx={{ flex: 1, width: '100%' }}>
                 <BarChart
-                  dataset={dashboardData.monthlySales}
+                  dataset={dashboardData.monthlySales as any[]}
                   series={[{
                     dataKey: 'total',
                     label: 'Vendas',

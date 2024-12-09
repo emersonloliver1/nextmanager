@@ -28,7 +28,31 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import SearchIcon from '@mui/icons-material/Search';
 import { collection, addDoc, updateDoc, deleteDoc, doc, getDocs, query, orderBy } from 'firebase/firestore';
 import { db } from '../config/firebase';
-import { Supplier } from '../types/product';
+
+interface Address {
+  street: string
+  number: string
+  complement?: string
+  neighborhood: string
+  district?: string
+  city: string
+  state: string
+  zipCode: string
+}
+
+interface Supplier {
+  id?: string
+  name: string
+  document: string
+  email: string
+  phone: string
+  address: Address
+  status: 'active' | 'inactive'
+  category: string
+  notes?: string
+  createdAt: string
+  updatedAt: string
+}
 
 const ESTADOS_BR = [
   'AC', 'AL', 'AP', 'AM', 'BA', 'CE', 'DF', 'ES', 'GO', 'MA', 'MT', 'MS', 'MG',
@@ -37,49 +61,46 @@ const ESTADOS_BR = [
 
 export default function Suppliers() {
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
-  const [searchTerm, setSearchTerm] = useState('');
   const [openDialog, setOpenDialog] = useState(false);
   const [selectedSupplier, setSelectedSupplier] = useState<Supplier | null>(null);
-  const [formData, setFormData] = useState<Partial<Supplier>>({
+  const [searchTerm, setSearchTerm] = useState('');
+  const [formData, setFormData] = useState<Supplier>({
     name: '',
     document: '',
     email: '',
     phone: '',
+    status: 'active',
     address: {
       street: '',
       number: '',
       complement: '',
-      district: '',
+      neighborhood: '',
       city: '',
       state: '',
       zipCode: '',
-    },
-    status: 'active',
+    }
   });
 
   useEffect(() => {
-    loadSuppliers();
+    fetchSuppliers();
   }, []);
 
-  const loadSuppliers = async () => {
+  const fetchSuppliers = async () => {
     try {
       setLoading(true);
       const suppliersRef = collection(db, 'suppliers');
       const q = query(suppliersRef, orderBy('name'));
       const querySnapshot = await getDocs(q);
-      
       const suppliersData = querySnapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data()
       })) as Supplier[];
-      
       setSuppliers(suppliersData);
     } catch (err) {
+      setError('Erro ao carregar fornecedores');
       console.error('Erro ao carregar fornecedores:', err);
-      setError('Erro ao carregar fornecedores. Tente novamente.');
     } finally {
       setLoading(false);
     }
@@ -87,45 +108,48 @@ export default function Suppliers() {
 
   const handleSubmit = async () => {
     try {
-      setLoading(true);
-      setError('');
-      
+      setLoading(true)
       const supplierData = {
         ...formData,
-        updatedAt: new Date().toISOString(),
-      };
-
-      if (selectedSupplier) {
-        const supplierRef = doc(db, 'suppliers', selectedSupplier.id);
-        await updateDoc(supplierRef, supplierData);
-        setSuccess('Fornecedor atualizado com sucesso!');
-      } else {
-        supplierData.createdAt = new Date().toISOString();
-        await addDoc(collection(db, 'suppliers'), supplierData);
-        setSuccess('Fornecedor adicionado com sucesso!');
+        createdAt: formData.createdAt || new Date().toISOString(),
+        updatedAt: new Date().toISOString()
       }
 
-      handleCloseDialog();
-      loadSuppliers();
-    } catch (err) {
-      console.error('Erro ao salvar fornecedor:', err);
-      setError('Erro ao salvar fornecedor. Tente novamente.');
+      if (selectedSupplier?.id) {
+        await updateDoc(doc(db, 'suppliers', selectedSupplier.id), supplierData)
+      } else {
+        await addDoc(collection(db, 'suppliers'), supplierData)
+      }
+
+      await loadSuppliers()
+      handleCloseDialog()
+      setFeedback({
+        open: true,
+        message: selectedSupplier ? 'Fornecedor atualizado com sucesso' : 'Fornecedor adicionado com sucesso',
+        type: 'success'
+      })
+    } catch (error) {
+      console.error('Erro ao salvar fornecedor:', error)
+      setFeedback({
+        open: true,
+        message: 'Erro ao salvar fornecedor',
+        type: 'error'
+      })
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }
 
   const handleDelete = async (supplier: Supplier) => {
-    if (!window.confirm('Tem certeza que deseja excluir este fornecedor?')) return;
-
+    if (!supplier.id) return;
+    
     try {
       setLoading(true);
       await deleteDoc(doc(db, 'suppliers', supplier.id));
-      setSuccess('Fornecedor excluído com sucesso!');
-      loadSuppliers();
+      await fetchSuppliers();
     } catch (err) {
+      setError('Erro ao excluir fornecedor');
       console.error('Erro ao excluir fornecedor:', err);
-      setError('Erro ao excluir fornecedor. Tente novamente.');
     } finally {
       setLoading(false);
     }
@@ -148,7 +172,7 @@ export default function Suppliers() {
         street: '',
         number: '',
         complement: '',
-        district: '',
+        neighborhood: '',
         city: '',
         state: '',
         zipCode: '',
@@ -161,7 +185,22 @@ export default function Suppliers() {
   const handleCloseDialog = () => {
     setOpenDialog(false);
     setSelectedSupplier(null);
-    setFormData({});
+    setFormData({
+      name: '',
+      document: '',
+      email: '',
+      phone: '',
+      address: {
+        street: '',
+        number: '',
+        complement: '',
+        neighborhood: '',
+        city: '',
+        state: '',
+        zipCode: '',
+      },
+      status: 'active',
+    });
   };
 
   const filteredSuppliers = suppliers.filter(supplier =>
@@ -169,6 +208,14 @@ export default function Suppliers() {
     supplier.document.toLowerCase().includes(searchTerm.toLowerCase()) ||
     supplier.email.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  if (loading) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+        <CircularProgress />
+      </Box>
+    );
+  }
 
   return (
     <Box sx={{ p: 3 }}>
@@ -182,42 +229,31 @@ export default function Suppliers() {
         </Alert>
       )}
 
-      {success && (
-        <Alert severity="success" sx={{ mb: 2 }} onClose={() => setSuccess('')}>
-          {success}
-        </Alert>
-      )}
-
-      <Paper sx={{ p: 2, mb: 2 }}>
-        <Grid container spacing={2} alignItems="center">
-          <Grid item xs={12} sm={6}>
-            <TextField
-              fullWidth
-              variant="outlined"
-              placeholder="Buscar por nome, CNPJ ou email"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <SearchIcon />
-                  </InputAdornment>
-                ),
-              }}
-            />
-          </Grid>
-          <Grid item xs={12} sm={6} sx={{ textAlign: 'right' }}>
-            <Button
-              variant="contained"
-              startIcon={<AddIcon />}
-              onClick={handleAdd}
-              disabled={loading}
-            >
-              Novo Fornecedor
-            </Button>
-          </Grid>
-        </Grid>
-      </Paper>
+      <Box sx={{ mb: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <TextField
+          placeholder="Pesquisar fornecedores..."
+          variant="outlined"
+          size="small"
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          sx={{ width: 300 }}
+          InputProps={{
+            startAdornment: (
+              <InputAdornment position="start">
+                <SearchIcon />
+              </InputAdornment>
+            ),
+          }}
+        />
+        <Button
+          variant="contained"
+          color="primary"
+          startIcon={<AddIcon />}
+          onClick={handleAdd}
+        >
+          Novo Fornecedor
+        </Button>
+      </Box>
 
       <TableContainer component={Paper}>
         <Table>
@@ -227,76 +263,62 @@ export default function Suppliers() {
               <TableCell>CNPJ</TableCell>
               <TableCell>Email</TableCell>
               <TableCell>Telefone</TableCell>
-              <TableCell>Cidade/UF</TableCell>
               <TableCell>Status</TableCell>
               <TableCell align="right">Ações</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
-            {loading ? (
-              <TableRow>
-                <TableCell colSpan={7} align="center">
-                  <CircularProgress />
+            {filteredSuppliers.map((supplier) => (
+              <TableRow key={supplier.id}>
+                <TableCell>{supplier.name}</TableCell>
+                <TableCell>{supplier.document}</TableCell>
+                <TableCell>{supplier.email}</TableCell>
+                <TableCell>{supplier.phone}</TableCell>
+                <TableCell>
+                  <Button
+                    variant="outlined"
+                    size="small"
+                    color={supplier.status === 'active' ? 'success' : 'error'}
+                  >
+                    {supplier.status === 'active' ? 'Ativo' : 'Inativo'}
+                  </Button>
+                </TableCell>
+                <TableCell align="right">
+                  <IconButton onClick={() => handleEdit(supplier)} color="primary">
+                    <EditIcon />
+                  </IconButton>
+                  <IconButton onClick={() => handleDelete(supplier)} color="error">
+                    <DeleteIcon />
+                  </IconButton>
                 </TableCell>
               </TableRow>
-            ) : filteredSuppliers.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={7} align="center">
-                  Nenhum fornecedor encontrado
-                </TableCell>
-              </TableRow>
-            ) : (
-              filteredSuppliers.map((supplier) => (
-                <TableRow key={supplier.id}>
-                  <TableCell>{supplier.name}</TableCell>
-                  <TableCell>{supplier.document}</TableCell>
-                  <TableCell>{supplier.email}</TableCell>
-                  <TableCell>{supplier.phone}</TableCell>
-                  <TableCell>{supplier.address.city}/{supplier.address.state}</TableCell>
-                  <TableCell>
-                    <Alert 
-                      severity={supplier.status === 'active' ? 'success' : 'error'}
-                      sx={{ py: 0, px: 1 }}
-                    >
-                      {supplier.status === 'active' ? 'Ativo' : 'Inativo'}
-                    </Alert>
-                  </TableCell>
-                  <TableCell align="right">
-                    <IconButton onClick={() => handleEdit(supplier)} disabled={loading}>
-                      <EditIcon />
-                    </IconButton>
-                    <IconButton onClick={() => handleDelete(supplier)} disabled={loading}>
-                      <DeleteIcon />
-                    </IconButton>
-                  </TableCell>
-                </TableRow>
-              ))
-            )}
+            ))}
           </TableBody>
         </Table>
       </TableContainer>
 
-      {/* Diálogo de Adicionar/Editar Fornecedor */}
       <Dialog open={openDialog} onClose={handleCloseDialog} maxWidth="md" fullWidth>
         <DialogTitle>
           {selectedSupplier ? 'Editar Fornecedor' : 'Novo Fornecedor'}
         </DialogTitle>
-        <DialogContent>
-          <Grid container spacing={2} sx={{ mt: 1 }}>
+        <DialogContent dividers>
+          <Grid container spacing={2}>
             <Grid item xs={12} sm={6}>
               <TextField
                 fullWidth
                 label="Nome"
-                value={formData.name || ''}
+                value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                required
               />
             </Grid>
             <Grid item xs={12} sm={6}>
               <TextField
                 fullWidth
                 label="CNPJ"
-                value={formData.document || ''}
+                value={formData.document}
                 onChange={(e) => setFormData({ ...formData, document: e.target.value })}
+                required
               />
             </Grid>
             <Grid item xs={12} sm={6}>
@@ -304,20 +326,21 @@ export default function Suppliers() {
                 fullWidth
                 label="Email"
                 type="email"
-                value={formData.email || ''}
+                value={formData.email}
                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                required
               />
             </Grid>
             <Grid item xs={12} sm={6}>
               <TextField
                 fullWidth
                 label="Telefone"
-                value={formData.phone || ''}
+                value={formData.phone}
                 onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                required
               />
             </Grid>
 
-            {/* Endereço */}
             <Grid item xs={12}>
               <Typography variant="subtitle1" sx={{ mb: 1 }}>
                 Endereço
@@ -327,29 +350,31 @@ export default function Suppliers() {
               <TextField
                 fullWidth
                 label="Rua"
-                value={formData.address?.street || ''}
+                value={formData.address.street}
                 onChange={(e) => setFormData({
                   ...formData,
                   address: { ...formData.address, street: e.target.value }
                 })}
+                required
               />
             </Grid>
             <Grid item xs={12} sm={3}>
               <TextField
                 fullWidth
                 label="Número"
-                value={formData.address?.number || ''}
+                value={formData.address.number}
                 onChange={(e) => setFormData({
                   ...formData,
                   address: { ...formData.address, number: e.target.value }
                 })}
+                required
               />
             </Grid>
             <Grid item xs={12} sm={3}>
               <TextField
                 fullWidth
                 label="Complemento"
-                value={formData.address?.complement || ''}
+                value={formData.address.complement}
                 onChange={(e) => setFormData({
                   ...formData,
                   address: { ...formData.address, complement: e.target.value }
@@ -360,34 +385,37 @@ export default function Suppliers() {
               <TextField
                 fullWidth
                 label="Bairro"
-                value={formData.address?.district || ''}
+                value={formData.address.neighborhood}
                 onChange={(e) => setFormData({
                   ...formData,
-                  address: { ...formData.address, district: e.target.value }
+                  address: { ...formData.address, neighborhood: e.target.value }
                 })}
+                required
               />
             </Grid>
             <Grid item xs={12} sm={4}>
               <TextField
                 fullWidth
                 label="Cidade"
-                value={formData.address?.city || ''}
+                value={formData.address.city}
                 onChange={(e) => setFormData({
                   ...formData,
                   address: { ...formData.address, city: e.target.value }
                 })}
+                required
               />
             </Grid>
             <Grid item xs={12} sm={2}>
               <TextField
-                fullWidth
                 select
-                label="UF"
-                value={formData.address?.state || ''}
+                fullWidth
+                label="Estado"
+                value={formData.address.state}
                 onChange={(e) => setFormData({
                   ...formData,
                   address: { ...formData.address, state: e.target.value }
                 })}
+                required
               >
                 {ESTADOS_BR.map((estado) => (
                   <MenuItem key={estado} value={estado}>
@@ -400,42 +428,20 @@ export default function Suppliers() {
               <TextField
                 fullWidth
                 label="CEP"
-                value={formData.address?.zipCode || ''}
+                value={formData.address.zipCode}
                 onChange={(e) => setFormData({
                   ...formData,
                   address: { ...formData.address, zipCode: e.target.value }
                 })}
+                required
               />
-            </Grid>
-
-            <Grid item xs={12}>
-              <TextField
-                fullWidth
-                select
-                label="Status"
-                value={formData.status || 'active'}
-                onChange={(e) => setFormData({
-                  ...formData,
-                  status: e.target.value as 'active' | 'inactive'
-                })}
-              >
-                <MenuItem value="active">Ativo</MenuItem>
-                <MenuItem value="inactive">Inativo</MenuItem>
-              </TextField>
             </Grid>
           </Grid>
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleCloseDialog} disabled={loading}>
-            Cancelar
-          </Button>
-          <Button
-            onClick={handleSubmit}
-            variant="contained"
-            disabled={loading}
-            startIcon={loading ? <CircularProgress size={20} /> : null}
-          >
-            {selectedSupplier ? 'Atualizar' : 'Adicionar'}
+          <Button onClick={handleCloseDialog}>Cancelar</Button>
+          <Button onClick={handleSubmit} variant="contained" color="primary">
+            {selectedSupplier ? 'Salvar' : 'Criar'}
           </Button>
         </DialogActions>
       </Dialog>
