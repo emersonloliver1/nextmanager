@@ -21,7 +21,7 @@ Sistema de gestão empresarial desenvolvido com React, TypeScript e Firebase.
 
 1. Clone o repositório:
 ```bash
-git clone https://github.com/seu-usuario/NextManager-Desktop.git
+git clone https://github.com/emersonloliver1/NextManager-Desktop.git
 cd NextManager-Desktop
 ```
 
@@ -63,4 +63,7 @@ Este projeto está sob a licença MIT - veja o arquivo [LICENSE.md](LICENSE.md) 
 
 ## ✒️ Autores
 
-* **Seu Nome** - *Desenvolvimento* - [seu-usuario](https://github.com/seu-usuario)
+* **Emerson Oliveira** - *Desenvolvedor FullStack* - [emersonloliver1](https://github.com/emersonloliver1)
+
+---
+Desenvolvido com ❤️ por Emerson Oliveira usando Cursor e Windsurf
