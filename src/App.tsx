@@ -16,6 +16,9 @@ import POS from './pages/POS'
 import Quotes from './pages/Quotes'
 import Settings from './pages/Settings'
 import ComingSoon from './components/ComingSoon'
+import Products from './pages/Products'
+import Suppliers from './pages/Suppliers'
+import Inventory from './pages/Inventory'
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   const [user, loading] = useAuthState(auth)
@@ -53,9 +56,9 @@ function App() {
           <Route path="quotes" element={<Quotes />} />
           
           {/* Produtos & Estoque */}
-          <Route path="products" element={<ComingSoon module="Produtos" />} />
-          <Route path="inventory" element={<ComingSoon module="Estoque" />} />
-          <Route path="suppliers" element={<ComingSoon module="Fornecedores" />} />
+          <Route path="products" element={<Products />} />
+          <Route path="inventory" element={<Inventory />} />
+          <Route path="suppliers" element={<Suppliers />} />
           
           {/* Financeiro */}
           <Route path="financial" element={<ComingSoon module="Financeiro" />} />

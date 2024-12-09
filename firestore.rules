@@ -31,6 +31,24 @@ service cloud.firestore {
       allow write: if isAuthenticated();
     }
 
+    // Regra para a coleção suppliers
+    match /suppliers/{supplierId} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated();
+    }
+
+    // Regra para a coleção stock_movements
+    match /stock_movements/{movementId} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated();
+    }
+
+    // Regra para a coleção categories
+    match /categories/{categoryId} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated();
+    }
+
     // Regra padrão: negar tudo que não foi explicitamente permitido
     match /{document=**} {
       allow read, write: if false;
