@@ -21,14 +21,14 @@ import { auth } from '../../config/firebase';
 import { useNavigate } from 'react-router-dom';
 
 interface Project {
+  [key: string]: any;
   id?: string;
   name: string;
   description: string;
-  status: 'planejamento' | 'em_andamento' | 'concluido' | 'pausado';
+  status: 'pending' | 'in_progress' | 'completed' | 'cancelled';
   startDate: string;
   endDate: string;
-  team: string[];
-  progress: number;
+  userId: string;
 }
 
 export default function Projects() {

@@ -1,4 +1,4 @@
-import { createTheme, Theme } from '@mui/material/styles'
+import { createTheme } from '@mui/material/styles'
 import { ptBR } from '@mui/material/locale'
 
 declare module '@mui/material/styles' {

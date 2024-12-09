@@ -15,26 +15,21 @@ import {
 import { doc, updateDoc } from 'firebase/firestore'
 import { db } from '../config/firebase'
 
-interface CompanySettings extends Record<string, any> {
-  name: string
-  document: string
-  email: string
-  phone: string
+interface CompanySettings {
+  [key: string]: any;
+  name: string;
+  document: string;
+  email: string;
+  phone: string;
   address: {
-    street: string
-    number: string
-    complement?: string
-    neighborhood: string
-    city: string
-    state: string
-    zipCode: string
-  }
-  logo?: string
-  theme: {
-    mode: 'light' | 'dark'
-    primaryColor: string
-    secondaryColor: string
-  }
+    street: string;
+    number: string;
+    complement?: string;
+    neighborhood: string;
+    city: string;
+    state: string;
+    zipCode: string;
+  };
 }
 
 const initialSettings: CompanySettings = {

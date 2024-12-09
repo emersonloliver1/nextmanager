@@ -78,7 +78,13 @@ interface TopProduct {
 
 interface MonthlySale {
   month: string;
-  total: number;
+  value: number;
+}
+
+interface DatasetType {
+  [key: string]: string | number;
+  month: string;
+  value: number;
 }
 
 interface DashboardData {
@@ -263,7 +269,7 @@ export default function Dashboard() {
       }
 
       const salesByMonth: Record<string, MonthlySale> = months.reduce((acc, month) => {
-        acc[month] = { month, total: 0 }
+        acc[month] = { month, value: 0 }
         return acc
       }, {} as Record<string, MonthlySale>)
 
@@ -272,13 +278,13 @@ export default function Dashboard() {
         const date = sale.createdAt.toDate()
         const monthKey = date.toLocaleDateString('pt-BR', { month: 'short', year: 'numeric' })
         if (salesByMonth[monthKey]) {
-          salesByMonth[monthKey].total += (sale.total || 0)
+          salesByMonth[monthKey].value += (sale.total || 0)
         }
       })
 
       const monthlySales: MonthlySale[] = Object.values(salesByMonth).map(sale => ({
         month: sale.month,
-        total: Number(sale.total.toFixed(2))
+        value: Number(sale.value.toFixed(2))
       }))
 
       // Buscar produtos e calcular estoque total
@@ -465,7 +471,7 @@ export default function Dashboard() {
                 <BarChart
                   dataset={dashboardData.monthlySales as any[]}
                   series={[{
-                    dataKey: 'total',
+                    dataKey: 'value',
                     label: 'Vendas',
                     valueFormatter: (value) => formatCurrency(value),
                   }]}

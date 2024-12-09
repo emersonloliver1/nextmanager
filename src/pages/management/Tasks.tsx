@@ -34,15 +34,14 @@ import { auth } from '../../config/firebase';
 import { useNavigate } from 'react-router-dom';
 
 interface Task {
+  [key: string]: any;
   id?: string;
   title: string;
   description: string;
-  priority: 'baixa' | 'media' | 'alta';
-  status: 'pendente' | 'em_andamento' | 'concluida';
+  status: 'pending' | 'in_progress' | 'completed';
+  priority: 'low' | 'medium' | 'high';
   dueDate: string;
-  assignedTo: string;
-  projectId?: string;
-  completed: boolean;
+  userId: string;
 }
 
 export default function Tasks() {

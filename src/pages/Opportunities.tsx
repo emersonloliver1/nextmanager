@@ -71,6 +71,11 @@ const initialOpportunity: Opportunity = {
   updatedAt: new Date()
 }
 
+// Função auxiliar para converter Timestamp em Date
+const timestampToDate = (timestamp: Timestamp): Date => {
+  return timestamp.toDate();
+};
+
 export default function Opportunities() {
   const theme = useTheme()
   const [opportunities, setOpportunities] = useState<Opportunity[]>([])

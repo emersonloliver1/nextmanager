@@ -1,10 +1,13 @@
 import { Navigate } from 'react-router-dom'
-import { useAuthState } from 'react-firebase-hooks/auth'
-import { auth } from '../config/firebase'
-import { CircularProgress, Box } from '@mui/material'
+import { Box, CircularProgress } from '@mui/material'
+import { useAuth } from '../hooks/useAuth'
 
-export default function PrivateRoute({ children }: { children: React.ReactNode }) {
-  const [user, loading] = useAuthState(auth)
+interface PrivateRouteProps {
+  children: React.ReactNode
+}
+
+export default function PrivateRoute({ children }: PrivateRouteProps) {
+  const { user, loading, error } = useAuth()
 
   if (loading) {
     return (
@@ -19,6 +22,10 @@ export default function PrivateRoute({ children }: { children: React.ReactNode }
         <CircularProgress />
       </Box>
     )
+  }
+
+  if (error) {
+    return <Navigate to="/login" />
   }
 
   if (!user) {

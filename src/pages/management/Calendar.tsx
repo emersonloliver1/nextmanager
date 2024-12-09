@@ -22,17 +22,13 @@ import { collection, query, getDocs, addDoc, updateDoc, deleteDoc, doc } from 'f
 import { db } from '../../config/firebase';
 
 interface Event {
+  [key: string]: any;
   id?: string;
   title: string;
-  description: string;
-  date: string;
-  startTime: string;
-  endTime: string;
-  type: 'reuniao' | 'compromisso' | 'tarefa' | 'outro';
-  participants?: string[];
-  location?: string;
-  createdAt?: string;
-  updatedAt?: string;
+  start: string;
+  end: string;
+  description?: string;
+  userId: string;
 }
 
 export default function Calendar() {

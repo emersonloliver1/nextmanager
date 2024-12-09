@@ -54,6 +54,11 @@ interface Product {
   updatedAt: string
 }
 
+// Função auxiliar para converter Timestamp em string ISO
+const timestampToISOString = (timestamp: Timestamp): string => {
+  return timestamp.toDate().toISOString();
+};
+
 export default function Products() {
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<ProductCategory[]>([]);
