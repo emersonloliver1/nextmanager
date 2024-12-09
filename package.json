@@ -9,11 +9,11 @@
   },
   "scripts": {
     "dev": "vite",
-    "build": "CI=false tsc --noEmit false && vite build",
+    "build": "CI=false tsc && vite build",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview",
     "start": "vite preview",
-    "postinstall": "CI=false npm run build"
+    "prebuild": "npm install"
   },
   "dependencies": {
     "@brazilian-utils/brazilian-utils": "^1.0.0-rc.12",
