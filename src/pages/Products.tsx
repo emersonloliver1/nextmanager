@@ -22,12 +22,18 @@ import {
   CircularProgress,
   Tooltip,
   InputAdornment,
+  Chip,
+  FormControl,
+  InputLabel,
+  Select,
+  SelectChangeEvent,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import SearchIcon from '@mui/icons-material/Search';
-import { collection, addDoc, updateDoc, deleteDoc, doc, getDocs, query, where, orderBy } from 'firebase/firestore';
+import CategoryIcon from '@mui/icons-material/Category';
+import { collection, addDoc, updateDoc, deleteDoc, doc, getDocs, query, where, orderBy, Timestamp } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { Product, ProductCategory, Supplier } from '../types/product';
 
@@ -40,7 +46,13 @@ export default function Products() {
   const [success, setSuccess] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [openDialog, setOpenDialog] = useState(false);
+  const [openCategoryDialog, setOpenCategoryDialog] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [newCategory, setNewCategory] = useState<Partial<ProductCategory>>({
+    name: '',
+    description: '',
+    status: 'active'
+  });
   const [formData, setFormData] = useState<Partial<Product>>({
     name: '',
     description: '',
@@ -54,17 +66,15 @@ export default function Products() {
     minStock: 0,
     maxStock: 0,
     currentStock: 0,
-    status: 'active',
+    status: 'active'
   });
 
-  // Carregar dados iniciais
   useEffect(() => {
     loadProducts();
     loadCategories();
     loadSuppliers();
   }, []);
 
-  // Carregar produtos
   const loadProducts = async () => {
     try {
       setLoading(true);
@@ -86,7 +96,6 @@ export default function Products() {
     }
   };
 
-  // Carregar categorias
   const loadCategories = async () => {
     try {
       const categoriesRef = collection(db, 'categories');
@@ -103,7 +112,6 @@ export default function Products() {
     }
   };
 
-  // Carregar fornecedores
   const loadSuppliers = async () => {
     try {
       const suppliersRef = collection(db, 'suppliers');
@@ -120,7 +128,6 @@ export default function Products() {
     }
   };
 
-  // Adicionar/Editar produto
   const handleSubmit = async () => {
     try {
       setLoading(true);
@@ -128,17 +135,15 @@ export default function Products() {
       
       const productData = {
         ...formData,
-        updatedAt: new Date().toISOString(),
+        updatedAt: Timestamp.now()
       };
 
       if (selectedProduct) {
-        // Atualizar produto existente
         const productRef = doc(db, 'products', selectedProduct.id);
         await updateDoc(productRef, productData);
         setSuccess('Produto atualizado com sucesso!');
       } else {
-        // Adicionar novo produto
-        productData.createdAt = new Date().toISOString();
+        productData.createdAt = Timestamp.now();
         await addDoc(collection(db, 'products'), productData);
         setSuccess('Produto adicionado com sucesso!');
       }
@@ -153,13 +158,36 @@ export default function Products() {
     }
   };
 
-  // Excluir produto
+  const handleCreateCategory = async () => {
+    try {
+      setLoading(true);
+      setError('');
+
+      const categoryData = {
+        ...newCategory,
+        createdAt: Timestamp.now(),
+        updatedAt: Timestamp.now()
+      };
+
+      await addDoc(collection(db, 'categories'), categoryData);
+      setSuccess('Categoria criada com sucesso!');
+      setOpenCategoryDialog(false);
+      setNewCategory({ name: '', description: '', status: 'active' });
+      loadCategories();
+    } catch (err) {
+      console.error('Erro ao criar categoria:', err);
+      setError('Erro ao criar categoria. Tente novamente.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleDelete = async (product: Product) => {
     if (!window.confirm('Tem certeza que deseja excluir este produto?')) return;
 
     try {
       setLoading(true);
-      await deleteDoc(doc(db, 'products', product.id));
+      await deleteDoc(doc(db, 'products', product.id!));
       setSuccess('Produto excluído com sucesso!');
       loadProducts();
     } catch (err) {
@@ -170,14 +198,12 @@ export default function Products() {
     }
   };
 
-  // Abrir diálogo para edição
   const handleEdit = (product: Product) => {
     setSelectedProduct(product);
     setFormData(product);
     setOpenDialog(true);
   };
 
-  // Abrir diálogo para novo produto
   const handleAdd = () => {
     setSelectedProduct(null);
     setFormData({
@@ -193,24 +219,56 @@ export default function Products() {
       minStock: 0,
       maxStock: 0,
       currentStock: 0,
-      status: 'active',
+      status: 'active'
     });
     setOpenDialog(true);
   };
 
-  // Fechar diálogo
   const handleCloseDialog = () => {
     setOpenDialog(false);
     setSelectedProduct(null);
     setFormData({});
   };
 
-  // Filtrar produtos
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: name.includes('price') || name.includes('cost') || name.includes('Stock') 
+        ? Number(value)
+        : value
+    }));
+  };
+
+  const handleSelectChange = (e: SelectChangeEvent) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
   const filteredProducts = products.filter(product =>
     product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     product.sku.toLowerCase().includes(searchTerm.toLowerCase()) ||
     (product.barcode && product.barcode.toLowerCase().includes(searchTerm.toLowerCase()))
   );
+
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat('pt-BR', {
+      style: 'currency',
+      currency: 'BRL'
+    }).format(value);
+  };
+
+  const getStockStatus = (product: Product) => {
+    if (product.currentStock <= product.minStock) {
+      return { color: 'error', label: 'Baixo' };
+    } else if (product.currentStock >= product.maxStock) {
+      return { color: 'warning', label: 'Alto' };
+    }
+    return { color: 'success', label: 'Normal' };
+  };
 
   return (
     <Box sx={{ p: 3 }}>
@@ -244,16 +302,22 @@ export default function Products() {
                   <InputAdornment position="start">
                     <SearchIcon />
                   </InputAdornment>
-                ),
+                )
               }}
             />
           </Grid>
-          <Grid item xs={12} sm={6} sx={{ textAlign: 'right' }}>
+          <Grid item xs={12} sm={6} sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
+            <Button
+              variant="outlined"
+              startIcon={<CategoryIcon />}
+              onClick={() => setOpenCategoryDialog(true)}
+            >
+              Nova Categoria
+            </Button>
             <Button
               variant="contained"
               startIcon={<AddIcon />}
               onClick={handleAdd}
-              disabled={loading}
             >
               Novo Produto
             </Button>
@@ -268,9 +332,9 @@ export default function Products() {
               <TableCell>Nome</TableCell>
               <TableCell>SKU</TableCell>
               <TableCell>Categoria</TableCell>
-              <TableCell>Preço</TableCell>
-              <TableCell>Estoque</TableCell>
-              <TableCell>Status</TableCell>
+              <TableCell align="right">Preço</TableCell>
+              <TableCell align="right">Estoque</TableCell>
+              <TableCell align="right">Status</TableCell>
               <TableCell align="right">Ações</TableCell>
             </TableRow>
           </TableHead>
@@ -288,205 +352,278 @@ export default function Products() {
                 </TableCell>
               </TableRow>
             ) : (
-              filteredProducts.map((product) => (
-                <TableRow key={product.id}>
-                  <TableCell>{product.name}</TableCell>
-                  <TableCell>{product.sku}</TableCell>
-                  <TableCell>{product.category}</TableCell>
-                  <TableCell>
-                    {product.price.toLocaleString('pt-BR', {
-                      style: 'currency',
-                      currency: 'BRL'
-                    })}
-                  </TableCell>
-                  <TableCell>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      {product.currentStock}
-                      {product.currentStock <= product.minStock && (
-                        <Tooltip title="Estoque baixo">
-                          <Alert severity="warning" sx={{ py: 0, px: 1 }}>!</Alert>
-                        </Tooltip>
+              filteredProducts.map((product) => {
+                const stockStatus = getStockStatus(product);
+                return (
+                  <TableRow key={product.id}>
+                    <TableCell>{product.name}</TableCell>
+                    <TableCell>{product.sku}</TableCell>
+                    <TableCell>
+                      {product.category ? (
+                        categories.find(c => c.id === product.category)?.name || product.category
+                      ) : (
+                        <Typography variant="body2" color="text.secondary">
+                          Sem categoria
+                        </Typography>
                       )}
-                    </Box>
-                  </TableCell>
-                  <TableCell>
-                    <Alert 
-                      severity={product.status === 'active' ? 'success' : 'error'}
-                      sx={{ py: 0, px: 1 }}
-                    >
-                      {product.status === 'active' ? 'Ativo' : 'Inativo'}
-                    </Alert>
-                  </TableCell>
-                  <TableCell align="right">
-                    <IconButton onClick={() => handleEdit(product)} disabled={loading}>
-                      <EditIcon />
-                    </IconButton>
-                    <IconButton onClick={() => handleDelete(product)} disabled={loading}>
-                      <DeleteIcon />
-                    </IconButton>
-                  </TableCell>
-                </TableRow>
-              ))
+                    </TableCell>
+                    <TableCell align="right">{formatCurrency(product.price)}</TableCell>
+                    <TableCell align="right">
+                      <Chip
+                        label={`${product.currentStock} ${product.unit}`}
+                        color={stockStatus.color as any}
+                        size="small"
+                        variant="outlined"
+                      />
+                    </TableCell>
+                    <TableCell align="right">
+                      <Chip
+                        label={product.status === 'active' ? 'Ativo' : 'Inativo'}
+                        color={product.status === 'active' ? 'success' : 'default'}
+                        size="small"
+                      />
+                    </TableCell>
+                    <TableCell align="right">
+                      <Tooltip title="Editar">
+                        <IconButton onClick={() => handleEdit(product)} size="small">
+                          <EditIcon />
+                        </IconButton>
+                      </Tooltip>
+                      <Tooltip title="Excluir">
+                        <IconButton onClick={() => handleDelete(product)} size="small" color="error">
+                          <DeleteIcon />
+                        </IconButton>
+                      </Tooltip>
+                    </TableCell>
+                  </TableRow>
+                );
+              })
             )}
           </TableBody>
         </Table>
       </TableContainer>
 
-      {/* Diálogo de Adicionar/Editar Produto */}
+      {/* Diálogo de Produto */}
       <Dialog open={openDialog} onClose={handleCloseDialog} maxWidth="md" fullWidth>
         <DialogTitle>
           {selectedProduct ? 'Editar Produto' : 'Novo Produto'}
         </DialogTitle>
-        <DialogContent>
-          <Grid container spacing={2} sx={{ mt: 1 }}>
+        <DialogContent dividers>
+          <Grid container spacing={2}>
             <Grid item xs={12} sm={6}>
               <TextField
                 fullWidth
                 label="Nome"
+                name="name"
                 value={formData.name || ''}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                onChange={handleInputChange}
+                required
               />
             </Grid>
             <Grid item xs={12} sm={6}>
               <TextField
                 fullWidth
                 label="SKU"
+                name="sku"
                 value={formData.sku || ''}
-                onChange={(e) => setFormData({ ...formData, sku: e.target.value })}
+                onChange={handleInputChange}
+                required
               />
             </Grid>
             <Grid item xs={12}>
               <TextField
                 fullWidth
                 label="Descrição"
+                name="description"
+                value={formData.description || ''}
+                onChange={handleInputChange}
                 multiline
                 rows={3}
-                value={formData.description || ''}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
               />
             </Grid>
             <Grid item xs={12} sm={6}>
               <TextField
                 fullWidth
                 label="Código de Barras"
+                name="barcode"
                 value={formData.barcode || ''}
-                onChange={(e) => setFormData({ ...formData, barcode: e.target.value })}
+                onChange={handleInputChange}
               />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <FormControl fullWidth>
+                <InputLabel>Categoria</InputLabel>
+                <Select
+                  name="category"
+                  value={formData.category || ''}
+                  onChange={handleSelectChange}
+                  label="Categoria"
+                >
+                  <MenuItem value="">
+                    <em>Nenhuma</em>
+                  </MenuItem>
+                  {categories.map((category) => (
+                    <MenuItem key={category.id} value={category.id}>
+                      {category.name}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <FormControl fullWidth>
+                <InputLabel>Fornecedor</InputLabel>
+                <Select
+                  name="supplier"
+                  value={formData.supplier || ''}
+                  onChange={handleSelectChange}
+                  label="Fornecedor"
+                >
+                  <MenuItem value="">
+                    <em>Nenhum</em>
+                  </MenuItem>
+                  {suppliers.map((supplier) => (
+                    <MenuItem key={supplier.id} value={supplier.id}>
+                      {supplier.name}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
             </Grid>
             <Grid item xs={12} sm={6}>
               <TextField
                 fullWidth
                 label="Unidade"
+                name="unit"
                 value={formData.unit || ''}
-                onChange={(e) => setFormData({ ...formData, unit: e.target.value })}
+                onChange={handleInputChange}
+                required
+                placeholder="Ex: UN, KG, L"
               />
             </Grid>
             <Grid item xs={12} sm={6}>
               <TextField
                 fullWidth
+                label="Preço de Venda"
+                name="price"
                 type="number"
-                label="Preço"
                 value={formData.price || ''}
-                onChange={(e) => setFormData({ ...formData, price: Number(e.target.value) })}
+                onChange={handleInputChange}
+                required
                 InputProps={{
-                  startAdornment: <InputAdornment position="start">R$</InputAdornment>,
+                  startAdornment: <InputAdornment position="start">R$</InputAdornment>
                 }}
               />
             </Grid>
             <Grid item xs={12} sm={6}>
               <TextField
                 fullWidth
+                label="Preço de Custo"
+                name="cost"
                 type="number"
-                label="Custo"
                 value={formData.cost || ''}
-                onChange={(e) => setFormData({ ...formData, cost: Number(e.target.value) })}
+                onChange={handleInputChange}
+                required
                 InputProps={{
-                  startAdornment: <InputAdornment position="start">R$</InputAdornment>,
+                  startAdornment: <InputAdornment position="start">R$</InputAdornment>
                 }}
               />
             </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                select
-                label="Categoria"
-                value={formData.category || ''}
-                onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-              >
-                {categories.map((category) => (
-                  <MenuItem key={category.id} value={category.id}>
-                    {category.name}
-                  </MenuItem>
-                ))}
-              </TextField>
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                select
-                label="Fornecedor"
-                value={formData.supplier || ''}
-                onChange={(e) => setFormData({ ...formData, supplier: e.target.value })}
-              >
-                {suppliers.map((supplier) => (
-                  <MenuItem key={supplier.id} value={supplier.id}>
-                    {supplier.name}
-                  </MenuItem>
-                ))}
-              </TextField>
-            </Grid>
             <Grid item xs={12} sm={4}>
               <TextField
                 fullWidth
-                type="number"
                 label="Estoque Mínimo"
+                name="minStock"
+                type="number"
                 value={formData.minStock || ''}
-                onChange={(e) => setFormData({ ...formData, minStock: Number(e.target.value) })}
+                onChange={handleInputChange}
+                required
               />
             </Grid>
             <Grid item xs={12} sm={4}>
               <TextField
                 fullWidth
-                type="number"
                 label="Estoque Máximo"
+                name="maxStock"
+                type="number"
                 value={formData.maxStock || ''}
-                onChange={(e) => setFormData({ ...formData, maxStock: Number(e.target.value) })}
+                onChange={handleInputChange}
+                required
               />
             </Grid>
             <Grid item xs={12} sm={4}>
               <TextField
                 fullWidth
-                type="number"
                 label="Estoque Atual"
+                name="currentStock"
+                type="number"
                 value={formData.currentStock || ''}
-                onChange={(e) => setFormData({ ...formData, currentStock: Number(e.target.value) })}
+                onChange={handleInputChange}
+                required
+              />
+            </Grid>
+            <Grid item xs={12}>
+              <FormControl fullWidth>
+                <InputLabel>Status</InputLabel>
+                <Select
+                  name="status"
+                  value={formData.status || 'active'}
+                  onChange={handleSelectChange}
+                  label="Status"
+                >
+                  <MenuItem value="active">Ativo</MenuItem>
+                  <MenuItem value="inactive">Inativo</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+          </Grid>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseDialog}>Cancelar</Button>
+          <Button
+            onClick={handleSubmit}
+            variant="contained"
+            disabled={loading}
+          >
+            {loading ? <CircularProgress size={24} /> : 'Salvar'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Diálogo de Nova Categoria */}
+      <Dialog open={openCategoryDialog} onClose={() => setOpenCategoryDialog(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>Nova Categoria</DialogTitle>
+        <DialogContent dividers>
+          <Grid container spacing={2}>
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                label="Nome da Categoria"
+                value={newCategory.name}
+                onChange={(e) => setNewCategory(prev => ({ ...prev, name: e.target.value }))}
+                required
               />
             </Grid>
             <Grid item xs={12}>
               <TextField
                 fullWidth
-                select
-                label="Status"
-                value={formData.status || 'active'}
-                onChange={(e) => setFormData({ ...formData, status: e.target.value as 'active' | 'inactive' })}
-              >
-                <MenuItem value="active">Ativo</MenuItem>
-                <MenuItem value="inactive">Inativo</MenuItem>
-              </TextField>
+                label="Descrição"
+                value={newCategory.description}
+                onChange={(e) => setNewCategory(prev => ({ ...prev, description: e.target.value }))}
+                multiline
+                rows={3}
+              />
             </Grid>
           </Grid>
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleCloseDialog} disabled={loading}>
-            Cancelar
-          </Button>
+          <Button onClick={() => setOpenCategoryDialog(false)}>Cancelar</Button>
           <Button
-            onClick={handleSubmit}
+            onClick={handleCreateCategory}
             variant="contained"
-            disabled={loading}
-            startIcon={loading ? <CircularProgress size={20} /> : null}
+            disabled={loading || !newCategory.name}
           >
-            {selectedProduct ? 'Atualizar' : 'Adicionar'}
+            {loading ? <CircularProgress size={24} /> : 'Criar Categoria'}
           </Button>
         </DialogActions>
       </Dialog>

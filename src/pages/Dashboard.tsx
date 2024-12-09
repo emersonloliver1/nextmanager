@@ -1,5 +1,20 @@
 import { useState, useEffect } from 'react'
-import { Box, Grid, Paper, Typography, useTheme } from '@mui/material'
+import { 
+  Box, 
+  Grid, 
+  Paper, 
+  Typography, 
+  useTheme,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Chip,
+  LinearProgress,
+  Tooltip
+} from '@mui/material'
 import AttachMoneyIcon from '@mui/icons-material/AttachMoney'
 import PeopleIcon from '@mui/icons-material/People'
 import InventoryIcon from '@mui/icons-material/Inventory'
@@ -7,6 +22,7 @@ import TrendingUpIcon from '@mui/icons-material/TrendingUp'
 import { collection, query, where, getDocs, orderBy, Timestamp } from 'firebase/firestore'
 import { db } from '../config/firebase'
 import { BarChart } from '@mui/x-charts'
+import { ProductCategory } from '../types/product'
 
 interface StatCardProps {
   title: string
@@ -24,9 +40,58 @@ interface SaleItem {
 }
 
 interface Sale {
+  id?: string
   items: SaleItem[]
   createdAt: Timestamp
   total: number
+}
+
+interface Product {
+  id?: string
+  name: string
+  description: string
+  sku: string
+  barcode?: string
+  price: number
+  cost: number
+  category?: string
+  supplier?: string
+  unit: string
+  minStock: number
+  maxStock: number
+  currentStock: number
+  status: 'active' | 'inactive'
+  createdAt?: string
+  updatedAt?: string
+}
+
+interface TopProduct {
+  id: string
+  name: string
+  quantity: number
+  revenue: number
+  profit: number
+  averagePrice: number
+  lastSale?: Date
+  category?: string
+}
+
+interface MonthlySale {
+  month: string
+  total: number
+}
+
+interface DashboardData {
+  monthlyRevenue: number
+  activeCustomers: number
+  productsInStock: number
+  totalProfit: number
+  revenueChange: string
+  customersChange: string
+  productsChange: string | null
+  profitChange: string
+  monthlySales: MonthlySale[]
+  topProducts: TopProduct[]
 }
 
 function StatCard({ title, value, icon, color, percentageChange }: StatCardProps) {
@@ -87,17 +152,18 @@ function StatCard({ title, value, icon, color, percentageChange }: StatCardProps
 export default function Dashboard() {
   const theme = useTheme()
   const [loading, setLoading] = useState(true)
-  const [dashboardData, setDashboardData] = useState({
+  const [categories, setCategories] = useState<ProductCategory[]>([])
+  const [dashboardData, setDashboardData] = useState<DashboardData>({
     monthlyRevenue: 0,
     activeCustomers: 0,
     productsInStock: 0,
     totalProfit: 0,
     revenueChange: '',
     customersChange: '',
-    productsChange: null as string | null,
+    productsChange: null,
     profitChange: '',
-    monthlySales: [] as { month: string; total: number }[],
-    topProducts: [] as { name: string; quantity: number }[]
+    monthlySales: [],
+    topProducts: []
   })
 
   // Função para calcular a variação percentual
@@ -115,143 +181,218 @@ export default function Dashboard() {
     }).format(value)
   }
 
-  useEffect(() => {
-    const fetchDashboardData = async () => {
-      try {
-        setLoading(true)
-        
-        // Datas para filtros
-        const now = new Date()
-        const firstDayCurrentMonth = new Date(now.getFullYear(), now.getMonth(), 1)
-        const firstDayPreviousMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1)
-        const lastDayPreviousMonth = new Date(now.getFullYear(), now.getMonth(), 0)
-        const sixMonthsAgo = new Date(now)
-        sixMonthsAgo.setMonth(now.getMonth() - 6)
+  const fetchDashboardData = async () => {
+    try {
+      setLoading(true)
+      
+      // Buscar categorias primeiro
+      const categoriesRef = collection(db, 'categories')
+      const categoriesSnapshot = await getDocs(categoriesRef)
+      const categoriesData = categoriesSnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      })) as ProductCategory[]
+      setCategories(categoriesData)
 
-        // Buscar vendas dos últimos 6 meses
-        const salesRef = collection(db, 'sales')
-        const salesQuery = query(
-          salesRef,
-          where('createdAt', '>=', Timestamp.fromDate(sixMonthsAgo)),
-          orderBy('createdAt', 'desc')
-        )
-        const salesSnapshot = await getDocs(salesQuery)
-        const sales = salesSnapshot.docs.map(doc => ({
-          ...doc.data(),
-          id: doc.id
-        })) as Sale[]
+      // Datas para filtros
+      const now = new Date()
+      const firstDayCurrentMonth = new Date(now.getFullYear(), now.getMonth(), 1)
+      const firstDayPreviousMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1)
+      const lastDayPreviousMonth = new Date(now.getFullYear(), now.getMonth(), 0)
+      const sixMonthsAgo = new Date(now)
+      sixMonthsAgo.setMonth(now.getMonth() - 5)
+      sixMonthsAgo.setDate(1)
 
-        // Calcular vendas e lucro do mês atual
-        const currentMonthSales = sales.filter(sale => 
-          sale.createdAt.toDate() >= firstDayCurrentMonth &&
-          sale.createdAt.toDate() <= now
-        )
+      // Buscar vendas dos últimos 6 meses
+      const salesRef = collection(db, 'sales')
+      const salesQuery = query(
+        salesRef,
+        where('createdAt', '>=', Timestamp.fromDate(sixMonthsAgo)),
+        orderBy('createdAt', 'desc')
+      )
+      const salesSnapshot = await getDocs(salesQuery)
+      const sales = salesSnapshot.docs.map(doc => ({
+        ...doc.data(),
+        id: doc.id
+      })) as Sale[]
 
-        const currentMonthRevenue = currentMonthSales.reduce((total, sale) => total + sale.total, 0)
-        
-        // Calcular lucro (valor de venda - valor de custo)
-        const currentMonthProfit = currentMonthSales.reduce((total, sale) => {
-          return total + sale.items.reduce((itemProfit, item) => {
-            return itemProfit + (item.quantity * (item.salePrice - item.costPrice))
-          }, 0)
+      // Calcular vendas e lucro do mês atual
+      const currentMonthSales = sales.filter(sale => {
+        const saleDate = sale.createdAt.toDate()
+        return saleDate >= firstDayCurrentMonth && saleDate <= now
+      })
+
+      const currentMonthRevenue = currentMonthSales.reduce((total, sale) => {
+        return total + (sale.total || 0)
+      }, 0)
+      
+      // Calcular lucro (valor de venda - valor de custo)
+      const currentMonthProfit = currentMonthSales.reduce((total, sale) => {
+        return total + sale.items.reduce((itemProfit, item) => {
+          const saleValue = (item.quantity || 0) * (item.salePrice || 0)
+          const costValue = (item.quantity || 0) * (item.costPrice || 0)
+          return itemProfit + (saleValue - costValue)
         }, 0)
+      }, 0)
 
-        // Calcular vendas e lucro do mês anterior
-        const previousMonthSales = sales.filter(sale => 
-          sale.createdAt.toDate() >= firstDayPreviousMonth &&
-          sale.createdAt.toDate() <= lastDayPreviousMonth
-        )
+      // Calcular vendas e lucro do mês anterior
+      const previousMonthSales = sales.filter(sale => {
+        const saleDate = sale.createdAt.toDate()
+        return saleDate >= firstDayPreviousMonth && saleDate <= lastDayPreviousMonth
+      })
 
-        const previousMonthRevenue = previousMonthSales.reduce((total, sale) => total + sale.total, 0)
-        const previousMonthProfit = previousMonthSales.reduce((total, sale) => {
-          return total + sale.items.reduce((itemProfit, item) => {
-            return itemProfit + (item.quantity * (item.salePrice - item.costPrice))
-          }, 0)
+      const previousMonthRevenue = previousMonthSales.reduce((total, sale) => {
+        return total + (sale.total || 0)
+      }, 0)
+
+      const previousMonthProfit = previousMonthSales.reduce((total, sale) => {
+        return total + sale.items.reduce((itemProfit, item) => {
+          const saleValue = (item.quantity || 0) * (item.salePrice || 0)
+          const costValue = (item.quantity || 0) * (item.costPrice || 0)
+          return itemProfit + (saleValue - costValue)
         }, 0)
+      }, 0)
 
-        // Agrupar vendas por mês
-        const salesByMonth = sales.reduce((acc, sale) => {
-          const date = sale.createdAt.toDate()
-          const monthKey = date.toLocaleDateString('pt-BR', { month: 'short', year: 'numeric' })
+      // Agrupar vendas por mês
+      const months = []
+      for (let i = 0; i < 6; i++) {
+        const date = new Date(now)
+        date.setMonth(date.getMonth() - i)
+        const monthKey = date.toLocaleDateString('pt-BR', { month: 'short', year: 'numeric' })
+        months.unshift(monthKey)
+      }
+
+      const salesByMonth: Record<string, MonthlySale> = months.reduce((acc, month) => {
+        acc[month] = { month, total: 0 }
+        return acc
+      }, {} as Record<string, MonthlySale>)
+
+      // Preencher os valores de vendas
+      sales.forEach(sale => {
+        const date = sale.createdAt.toDate()
+        const monthKey = date.toLocaleDateString('pt-BR', { month: 'short', year: 'numeric' })
+        if (salesByMonth[monthKey]) {
+          salesByMonth[monthKey].total += (sale.total || 0)
+        }
+      })
+
+      const monthlySales: MonthlySale[] = Object.values(salesByMonth).map(sale => ({
+        month: sale.month,
+        total: Number(sale.total.toFixed(2))
+      }))
+
+      // Buscar produtos e calcular estoque total
+      const productsRef = collection(db, 'products')
+      const productsSnapshot = await getDocs(productsRef)
+      const products = productsSnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      })) as Product[]
+
+      const currentProductsInStock = products.reduce(
+        (total, product) => total + (product.currentStock || 0),
+        0
+      )
+
+      // Calcular valor total em estoque
+      const totalStockValue = products.reduce(
+        (total, product) => total + ((product.currentStock || 0) * (product.price || 0)),
+        0
+      )
+
+      // Calcular custo total em estoque
+      const totalStockCost = products.reduce(
+        (total, product) => total + ((product.currentStock || 0) * (product.cost || 0)),
+        0
+      )
+
+      // Calcular produtos mais vendidos com informações detalhadas
+      const productSales = new Map<string, TopProduct>()
+      
+      for (const sale of sales) {
+        if (!sale.items) continue
+
+        for (const item of sale.items) {
+          if (!item.productId || !item.quantity || !item.salePrice || !item.costPrice) continue
+
+          const productId = item.productId
+          const product = products.find(p => p.id === productId)
           
-          if (!acc[monthKey]) {
-            acc[monthKey] = { month: monthKey, total: 0 }
+          if (!product) continue
+
+          const revenue = item.quantity * item.salePrice
+          const profit = item.quantity * (item.salePrice - item.costPrice)
+          const saleDate = sale.createdAt.toDate()
+          
+          if (!productSales.has(productId)) {
+            productSales.set(productId, {
+              id: productId,
+              name: product.name,
+              quantity: 0,
+              revenue: 0,
+              profit: 0,
+              averagePrice: 0,
+              category: product.category,
+              lastSale: saleDate
+            })
           }
-          acc[monthKey].total += sale.total
-          return acc
-        }, {} as Record<string, { month: string; total: number }>)
 
-        const monthlySales = Object.values(salesByMonth).sort((a, b) => 
-          new Date(a.month).getTime() - new Date(b.month).getTime()
-        )
-
-        // Calcular produtos mais vendidos
-        const productSales = new Map<string, { name: string; quantity: number }>()
-        
-        for (const sale of sales) {
-          for (const item of sale.items) {
-            const productId = item.productId
-            const productRef = collection(db, 'products')
-            const productDoc = await getDocs(query(productRef, where('id', '==', productId)))
-            const productName = productDoc.docs[0]?.data()?.name || 'Produto Desconhecido'
-            
-            if (!productSales.has(productId)) {
-              productSales.set(productId, { name: productName, quantity: 0 })
-            }
-            const current = productSales.get(productId)!
-            current.quantity += item.quantity
-            productSales.set(productId, current)
+          const current = productSales.get(productId)!
+          current.quantity += item.quantity
+          current.revenue += revenue
+          current.profit += profit
+          current.averagePrice = current.revenue / current.quantity
+          
+          if (!current.lastSale || saleDate > current.lastSale) {
+            current.lastSale = saleDate
           }
         }
-
-        const topProducts = Array.from(productSales.values())
-          .sort((a, b) => b.quantity - a.quantity)
-          .slice(0, 5)
-
-        // Buscar clientes ativos
-        const customersRef = collection(db, 'customers')
-        const activeCustomersQuery = query(
-          customersRef,
-          where('status', '==', 'active')
-        )
-        const activeCustomersSnapshot = await getDocs(activeCustomersQuery)
-        const currentActiveCustomers = activeCustomersSnapshot.size
-
-        // Buscar produtos em estoque
-        const productsRef = collection(db, 'products')
-        const productsSnapshot = await getDocs(productsRef)
-        const currentProductsInStock = productsSnapshot.docs.reduce(
-          (total, doc) => {
-            const productData = doc.data()
-            return total + (productData.stockQuantity || 0)
-          },
-          0
-        )
-
-        // Calcular variações percentuais
-        const revenueChange = calculatePercentageChange(currentMonthRevenue, previousMonthRevenue)
-        const profitChange = calculatePercentageChange(currentMonthProfit, previousMonthProfit)
-
-        setDashboardData({
-          monthlyRevenue: currentMonthRevenue,
-          activeCustomers: currentActiveCustomers,
-          productsInStock: currentProductsInStock,
-          totalProfit: currentMonthProfit,
-          revenueChange,
-          customersChange: '0%',
-          productsChange: null,
-          profitChange,
-          monthlySales,
-          topProducts
-        })
-
-      } catch (error) {
-        console.error('Erro ao buscar dados do dashboard:', error)
-      } finally {
-        setLoading(false)
       }
-    }
 
+      const topProducts = Array.from(productSales.values())
+        .sort((a, b) => b.revenue - a.revenue)
+        .slice(0, 5)
+        .map(product => ({
+          ...product,
+          revenue: Number(product.revenue.toFixed(2)),
+          profit: Number(product.profit.toFixed(2)),
+          averagePrice: Number(product.averagePrice.toFixed(2))
+        }))
+
+      // Buscar clientes ativos
+      const customersRef = collection(db, 'customers')
+      const activeCustomersQuery = query(
+        customersRef,
+        where('status', '==', 'active')
+      )
+      const activeCustomersSnapshot = await getDocs(activeCustomersQuery)
+      const currentActiveCustomers = activeCustomersSnapshot.size
+
+      // Calcular variações percentuais
+      const revenueChange = calculatePercentageChange(currentMonthRevenue, previousMonthRevenue)
+      const profitChange = calculatePercentageChange(currentMonthProfit, previousMonthProfit)
+
+      setDashboardData({
+        monthlyRevenue: Number(currentMonthRevenue.toFixed(2)),
+        activeCustomers: currentActiveCustomers,
+        productsInStock: currentProductsInStock,
+        totalProfit: Number(currentMonthProfit.toFixed(2)),
+        revenueChange,
+        customersChange: '0%',
+        productsChange: null,
+        profitChange,
+        monthlySales,
+        topProducts
+      })
+
+    } catch (error) {
+      console.error('Erro ao buscar dados do dashboard:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
     fetchDashboardData()
   }, [])
 
@@ -359,29 +500,75 @@ export default function Dashboard() {
               Produtos Mais Vendidos
             </Typography>
             {dashboardData.topProducts.length > 0 ? (
-              <Box sx={{ flex: 1, overflow: 'auto' }}>
-                {dashboardData.topProducts.map((product, index) => (
-                  <Box
-                    key={product.name}
-                    sx={{
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                      mb: 2,
-                      p: 2,
-                      borderRadius: 1,
-                      bgcolor: `${theme.palette.primary.main}${(5 - index) * 2}0`,
-                    }}
-                  >
-                    <Typography variant="body1" sx={{ color: 'white' }}>
-                      {product.name}
-                    </Typography>
-                    <Typography variant="body2" sx={{ color: 'white' }}>
-                      {product.quantity} unidades
-                    </Typography>
-                  </Box>
-                ))}
-              </Box>
+              <TableContainer sx={{ flex: 1, overflow: 'auto' }}>
+                <Table size="small" stickyHeader>
+                  <TableHead>
+                    <TableRow>
+                      <TableCell>Produto</TableCell>
+                      <TableCell align="right">Qtd.</TableCell>
+                      <TableCell align="right">Receita</TableCell>
+                      <TableCell align="right">Lucro</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {dashboardData.topProducts.map((product, index) => {
+                      const maxRevenue = dashboardData.topProducts[0].revenue
+                      const progress = (product.revenue / maxRevenue) * 100
+                      const category = categories.find(c => c.id === product.category)
+
+                      return (
+                        <TableRow key={product.id}>
+                          <TableCell>
+                            <Box>
+                              <Typography variant="body2" noWrap>
+                                {product.name}
+                              </Typography>
+                              {product.category && (
+                                <Typography variant="caption" color="text.secondary" display="block">
+                                  {category?.name || product.category}
+                                </Typography>
+                              )}
+                              <LinearProgress
+                                variant="determinate"
+                                value={progress}
+                                sx={{
+                                  mt: 0.5,
+                                  height: 4,
+                                  borderRadius: 1,
+                                  bgcolor: `${theme.palette.primary.main}15`,
+                                  '& .MuiLinearProgress-bar': {
+                                    bgcolor: theme.palette.primary.main
+                                  }
+                                }}
+                              />
+                            </Box>
+                          </TableCell>
+                          <TableCell align="right">
+                            <Tooltip title={`Preço Médio: ${formatCurrency(product.averagePrice)}`}>
+                              <Typography variant="body2">
+                                {product.quantity}
+                              </Typography>
+                            </Tooltip>
+                          </TableCell>
+                          <TableCell align="right">
+                            <Typography variant="body2" color="primary">
+                              {formatCurrency(product.revenue)}
+                            </Typography>
+                          </TableCell>
+                          <TableCell align="right">
+                            <Typography 
+                              variant="body2" 
+                              color={product.profit >= 0 ? 'success.main' : 'error.main'}
+                            >
+                              {formatCurrency(product.profit)}
+                            </Typography>
+                          </TableCell>
+                        </TableRow>
+                      )
+                    })}
+                  </TableBody>
+                </Table>
+              </TableContainer>
             ) : (
               <Box sx={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <Typography variant="body2" color="text.secondary">

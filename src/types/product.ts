@@ -1,21 +1,20 @@
 export interface Product {
-  id: string;
+  id?: string;
   name: string;
   description: string;
   sku: string;
   barcode?: string;
   price: number;
   cost: number;
-  category: string;
-  supplier: string;
+  category?: string;
+  supplier?: string;
   unit: string;
   minStock: number;
   maxStock: number;
   currentStock: number;
   status: 'active' | 'inactive';
-  imageUrl?: string;
-  createdAt: string;
-  updatedAt: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface StockMovement {
@@ -31,29 +30,30 @@ export interface StockMovement {
 }
 
 export interface ProductCategory {
-  id: string;
+  id?: string;
   name: string;
   description?: string;
-  createdAt: string;
-  updatedAt: string;
+  status: 'active' | 'inactive';
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface Supplier {
-  id: string;
+  id?: string;
   name: string;
   document: string;
   email: string;
   phone: string;
+  status: 'active' | 'inactive';
   address: {
     street: string;
     number: string;
     complement?: string;
-    district: string;
+    neighborhood: string;
     city: string;
     state: string;
     zipCode: string;
   };
-  status: 'active' | 'inactive';
-  createdAt: string;
-  updatedAt: string;
+  createdAt?: string;
+  updatedAt?: string;
 } 
